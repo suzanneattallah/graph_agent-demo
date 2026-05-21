@@ -58,6 +58,50 @@ SCORE_BY_VERDICT = {"SATISFAISANT": 1.0, "À AMÉLIORER": 0.5, "INSUFFISANT": 0.
 
 mlflow.set_tracking_uri(MLFLOW_URL)
 
+
+def _get_experiment_id() -> str | None:
+    exp = mlflow.get_experiment_by_name(AGENT_EXPERIMENT)
+    return exp.experiment_id if exp else None
+
+
+def get_judge_from_ui(name: str) -> dict | None:
+    """Récupère un juge enregistré dans MLflow UI (section Judges)."""
+    exp_id = _get_experiment_id()
+    if not exp_id:
+        return None
+    try:
+        from mlflow.genai.scorers import list_scorers
+        for s in list_scorers(experiment_id=exp_id):
+            if getattr(s, "name", None) == name:
+                return {
+                    "name": name,
+                    "instructions": getattr(s, "instructions", None) or getattr(s, "_instructions", None),
+                    "model": getattr(s, "model", None),
+                    "_obj": s,
+                }
+    except Exception as exc:
+        print(f"  [SDK] Erreur lecture juge '{name}' : {exc}")
+    return None
+
+
+def update_judge_in_ui(judge_name: str, new_instructions: str) -> bool:
+    """Met à jour un juge dans MLflow UI avec les nouvelles instructions raffinées."""
+    exp_id = _get_experiment_id()
+    if not exp_id:
+        return False
+    try:
+        from mlflow.genai.judges import make_judge
+        existing = get_judge_from_ui(judge_name)
+        model = (existing or {}).get("model") or "openai:/gpt-4o-mini"
+        new_judge = make_judge(name=judge_name, instructions=new_instructions, model=model)
+        new_judge.register(experiment_id=exp_id)
+        print(f"  [UI] Juge '{judge_name}' mis à jour ✓")
+        return True
+    except Exception as exc:
+        print(f"  [UI] Échec mise à jour '{judge_name}' : {exc}")
+        return False
+
+
 # Pas de client global : on recrée un client frais à chaque appel pour éviter
 # les coupures de connexion TCP (keep-alive VPN / idle timeout serveur).
 def _make_client(timeout: float = 180.0) -> OpenAI:
@@ -82,8 +126,6 @@ def _llm_call(
                 messages=messages,
                 temperature=temperature,
                 stream=True,
-                max_tokens=1024,
-                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             ):
                 if chunk.choices:
                     delta = chunk.choices[0].delta
@@ -408,6 +450,7 @@ def run_iteration(
     current_prompts: dict[str, str],
     iteration: int,
     cache: dict[str, str],
+    auto_ok: bool = False,
 ) -> tuple[int, list[dict[str, object]]]:
     print(f"\n{'=' * 70}")
     print(f"  ITÉRATION {iteration}")
@@ -435,7 +478,9 @@ def run_iteration(
             verdict = run_judge(current_prompts[judge_name], str(trace["question"]), str(trace["answer"]), trace_info)
             print(verdict)
 
-            human_feedback = input("\nTon feedback sur ce verdict (texte libre, ou 'ok' si d'accord) : ").strip()
+            human_feedback = "ok" if auto_ok else input("\nTon feedback sur ce verdict (texte libre, ou 'ok' si d'accord) : ").strip()
+            if auto_ok:
+                print("  [auto-ok] Feedback automatique : ok")
             trace_record["judges"][judge_name] = {
                 "verdict": verdict,
                 "verdict_label": extract_verdict(verdict),
@@ -503,6 +548,9 @@ def run_iteration(
             CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
             n_refined += 1
 
+        # Met à jour le juge dans MLflow UI (section Judges) avec le prompt raffiné
+        update_judge_in_ui(judge_name, new_prompt)
+
     total_disagreements = sum(len(disagreements) for disagreements in judge_disagreements.values())
     verdicts_all = [extract_verdict(record["judges"][judge_name]["verdict"]) for record in full_history for judge_name in JUDGES]
     satisfaisant_pct = verdicts_all.count("SATISFAISANT") / len(verdicts_all) if verdicts_all else 0.0
@@ -524,7 +572,7 @@ def run_iteration(
     return n_refined, full_history
 
 
-def main(limit: int = 5, iterations: int = 3) -> None:
+def main(limit: int = 5, iterations: int = 3, auto_ok: bool = False) -> None:
     print(f"Récupération des traces depuis '{AGENT_EXPERIMENT}'...")
     traces = fetch_agent_traces(limit=limit)
     if not traces:
@@ -546,7 +594,7 @@ def main(limit: int = 5, iterations: int = 3) -> None:
                     "judge_api_base": REMOTE_API_BASE,
                 }
             )
-            n_refined, _ = run_iteration(traces, current_prompts, iteration, cache)
+            n_refined, _ = run_iteration(traces, current_prompts, iteration, cache, auto_ok=auto_ok)
 
         if n_refined == 0:
             print(f"\n✅ Convergence atteinte à l'itération {iteration} — aucun juge raffiné.")
@@ -559,5 +607,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Boucle itérative de raffinement des juges pour mall")
     parser.add_argument("--limit", type=int, default=5, help="Nombre de traces à évaluer")
     parser.add_argument("--iterations", type=int, default=3, help="Nombre d'itérations")
+    parser.add_argument("--auto-ok", action="store_true", help="Valider automatiquement tous les verdicts (mode non-interactif)")
     args = parser.parse_args()
-    main(limit=args.limit, iterations=args.iterations)
+    main(limit=args.limit, iterations=args.iterations, auto_ok=args.auto_ok)
