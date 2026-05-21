@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# MLflow local DB & artifacts
+mlflow.db
+mlruns/
+mlartifacts/
+
+# Neo4j backup
+*.txt.bak
+Neo4j-*.txt
+
+# Archives & binaries
+*.zip
+*.exe
+*.whl
+
+# Large cache / AST outputs
+ast-out/
+ast_cache/
+**/cache/
+
+# PDFs générés
+*.pdf
+*.png
+
+# Demo artifacts (générés à l'exécution)
+demo_client/artifact/history_iteration_*.json
+demo_client/artifact/.judge_prompts_cache.json
+graph_agent/juges/artifact/
+graph_agent/nav_state.json
+
+# Autres projets dans C:\Projet (on ne veut que graph-agent-demo)
+Agent_recherche/
+Juge_Agent_recherche/
+BERT/
+Fede_patronale/
+MLFlow-prompt_management-llm-judge/
+MLFlow-prompt_management-llm-judge-mathieu/
+MLFlow-prompt_management-llm-judge-mathieu.zip
+coderag-ai-main/
+dspy-mini-project/
+dspy_YT/
+dspy_mlflow_docker/
+graphify-7/
+mall/
+sampleproject-main/
+spring-petclinic/
+spring-petclinic-ast.json
+udemi_angular/
+
+# Fichiers locaux Windows
+*.DS_Store
+Thumbs.db
