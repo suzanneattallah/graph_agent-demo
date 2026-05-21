@@ -82,6 +82,8 @@ def _llm_call(
                 messages=messages,
                 temperature=temperature,
                 stream=True,
+                max_tokens=1024,
+                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             ):
                 if chunk.choices:
                     delta = chunk.choices[0].delta
@@ -294,8 +296,23 @@ def run_judge(judge_instructions: str, question: str, answer: str, trace_info: s
         .replace("{{ outputs }}", answer)
         .replace("{{ trace }}", trace_info)
     )
+    # System message "/no_think" désactive le mode thinking de Qwen3
+    # et force des réponses concises dans le format attendu.
+    system_msg = (
+        "/no_think\n"
+        "You are a strict code quality judge. "
+        "Respond ONLY in the exact format: MÉTRIQUES MESURÉES / ANALYSE / VERDICT / SCORE / RECOMMANDATION. "
+        "Be concise. Do not explain your reasoning process. Output the verdict directly."
+    )
     try:
-        return _llm_call(JUDGE_MODEL, [{"role": "user", "content": filled_prompt}])
+        return _llm_call(
+            JUDGE_MODEL,
+            [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": filled_prompt},
+            ],
+            timeout=300.0,
+        )
     except Exception as exc:
         return f"[ERREUR JUGE] {type(exc).__name__}: {str(exc)[:200]}"
 
