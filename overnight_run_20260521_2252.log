@@ -1,0 +1,192 @@
+[22:52:51] Configuration anti-veille...
+[22:52:52] Pipeline overnight demarre  log : C:\Projet\overnight_run_20260521_2252.log
+[22:52:52] Ordi : laisser allume, ecran peut etre ferme
+[22:52:52] SKIP : Traces
+[22:52:52] === DEBUT : GEPA  Optimisation prompts juges ===
+[22:53:04]   2026/05/21 22:53:04 INFO mlflow.tracking.fluent: Experiment with name 'demo-client-juges-gepa' does not exist. Creating a new experiment.
+[22:53:06]   C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\data\dataset_source_registry.py:148: UserWarning: The specified dataset source can be interpreted in multiple ways: LocalArtifactDatasetSource, LocalArtifactDatasetSource. MLflow will assume that this is a LocalArtifactDatasetSource source.
+[22:53:06]     return _dataset_source_registry.resolve(
+[22:53:06]   Traceback (most recent call last):
+[22:53:06]     File "C:\Projet\demo_client\5_optimize_judges.py", line 426, in optimize_judge
+[22:53:06]       result = optimize_prompts(
+[22:53:06]           predict_fn=make_predict_fn(prompt_name),
+[22:53:06]       ...<3 lines>...
+[22:53:06]           scorers=[verdict_match, has_required_structure, recommendation_alignment],
+[22:53:06]       )
+[22:53:06]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\telemetry\track.py", line 24, in wrapper
+[22:53:06]       return func(*args, **kwargs)
+[22:53:06]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimize.py", line 231, in optimize_prompts
+[22:53:06]       optimizer_output = optimizer.optimize(
+[22:53:06]           eval_fn, converted_train_data, target_prompts_dict, enable_tracking
+[22:53:06]       )
+[22:53:06]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimizers\gepa_optimizer.py", line 149, in optimize
+[22:53:06]       provider, model = _parse_model_uri(self.reflection_model)
+[22:53:06]                         ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:06]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\metrics\genai\model_utils.py", line 105, in _parse_model_uri
+[22:53:06]       raise MlflowException(
+[22:53:06]       ...<3 lines>...
+[22:53:06]       )
+[22:53:06]   mlflow.exceptions.MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:07]   C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\data\dataset_source_registry.py:148: UserWarning: The specified dataset source can be interpreted in multiple ways: LocalArtifactDatasetSource, LocalArtifactDatasetSource. MLflow will assume that this is a LocalArtifactDatasetSource source.
+[22:53:07]     return _dataset_source_registry.resolve(
+[22:53:07]   Traceback (most recent call last):
+[22:53:07]     File "C:\Projet\demo_client\5_optimize_judges.py", line 426, in optimize_judge
+[22:53:07]       result = optimize_prompts(
+[22:53:07]           predict_fn=make_predict_fn(prompt_name),
+[22:53:07]       ...<3 lines>...
+[22:53:07]           scorers=[verdict_match, has_required_structure, recommendation_alignment],
+[22:53:07]       )
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\telemetry\track.py", line 24, in wrapper
+[22:53:07]       return func(*args, **kwargs)
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimize.py", line 231, in optimize_prompts
+[22:53:07]       optimizer_output = optimizer.optimize(
+[22:53:07]           eval_fn, converted_train_data, target_prompts_dict, enable_tracking
+[22:53:07]       )
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimizers\gepa_optimizer.py", line 149, in optimize
+[22:53:07]       provider, model = _parse_model_uri(self.reflection_model)
+[22:53:07]                         ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\metrics\genai\model_utils.py", line 105, in _parse_model_uri
+[22:53:07]       raise MlflowException(
+[22:53:07]       ...<3 lines>...
+[22:53:07]       )
+[22:53:07]   mlflow.exceptions.MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:07]   C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\data\dataset_source_registry.py:148: UserWarning: The specified dataset source can be interpreted in multiple ways: LocalArtifactDatasetSource, LocalArtifactDatasetSource. MLflow will assume that this is a LocalArtifactDatasetSource source.
+[22:53:07]     return _dataset_source_registry.resolve(
+[22:53:07]   Traceback (most recent call last):
+[22:53:07]     File "C:\Projet\demo_client\5_optimize_judges.py", line 426, in optimize_judge
+[22:53:07]       result = optimize_prompts(
+[22:53:07]           predict_fn=make_predict_fn(prompt_name),
+[22:53:07]       ...<3 lines>...
+[22:53:07]           scorers=[verdict_match, has_required_structure, recommendation_alignment],
+[22:53:07]       )
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\telemetry\track.py", line 24, in wrapper
+[22:53:07]       return func(*args, **kwargs)
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimize.py", line 231, in optimize_prompts
+[22:53:07]       optimizer_output = optimizer.optimize(
+[22:53:07]           eval_fn, converted_train_data, target_prompts_dict, enable_tracking
+[22:53:07]       )
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimizers\gepa_optimizer.py", line 149, in optimize
+[22:53:07]       provider, model = _parse_model_uri(self.reflection_model)
+[22:53:07]                         ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:07]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\metrics\genai\model_utils.py", line 105, in _parse_model_uri
+[22:53:07]       raise MlflowException(
+[22:53:07]       ...<3 lines>...
+[22:53:07]       )
+[22:53:07]   mlflow.exceptions.MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:08]   C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\data\dataset_source_registry.py:148: UserWarning: The specified dataset source can be interpreted in multiple ways: LocalArtifactDatasetSource, LocalArtifactDatasetSource. MLflow will assume that this is a LocalArtifactDatasetSource source.
+[22:53:08]     return _dataset_source_registry.resolve(
+[22:53:08]   Traceback (most recent call last):
+[22:53:08]     File "C:\Projet\demo_client\5_optimize_judges.py", line 426, in optimize_judge
+[22:53:08]       result = optimize_prompts(
+[22:53:08]           predict_fn=make_predict_fn(prompt_name),
+[22:53:08]       ...<3 lines>...
+[22:53:08]           scorers=[verdict_match, has_required_structure, recommendation_alignment],
+[22:53:08]       )
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\telemetry\track.py", line 24, in wrapper
+[22:53:08]       return func(*args, **kwargs)
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimize.py", line 231, in optimize_prompts
+[22:53:08]       optimizer_output = optimizer.optimize(
+[22:53:08]           eval_fn, converted_train_data, target_prompts_dict, enable_tracking
+[22:53:08]       )
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimizers\gepa_optimizer.py", line 149, in optimize
+[22:53:08]       provider, model = _parse_model_uri(self.reflection_model)
+[22:53:08]                         ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\metrics\genai\model_utils.py", line 105, in _parse_model_uri
+[22:53:08]       raise MlflowException(
+[22:53:08]       ...<3 lines>...
+[22:53:08]       )
+[22:53:08]   mlflow.exceptions.MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:08]   Traceback (most recent call last):
+[22:53:08]     File "<frozen runpy>", line 198, in _run_module_as_main
+[22:53:08]     File "<frozen runpy>", line 88, in _run_code
+[22:53:08]     File "C:\Projet\demo_client\5_optimize_judges.py", line 535, in <module>
+[22:53:08]       with mlflow.start_run(run_name="gepa_judges_optimization"):
+[22:53:08]            ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\tracking\fluent.py", line 367, in __exit__
+[22:53:08]       end_run(RunStatus.to_string(status))
+[22:53:08]       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\tracking\fluent.py", line 733, in end_run
+[22:53:08]       MlflowClient().set_terminated(last_active_run_id, status)
+[22:53:08]       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\tracking\client.py", line 3786, in set_terminated
+[22:53:08]       self._tracking_client.set_terminated(run_id, status, end_time)
+[22:53:08]       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\tracking\_tracking_service\client.py", line 803, in set_terminated
+[22:53:08]       self._log_url(run_id)
+[22:53:08]       ~~~~~~~~~~~~~^^^^^^^^
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\tracking\_tracking_service\client.py", line 786, in _log_url
+[22:53:08]       sys.stdout.write(f"\U0001f3c3 View run {run_name} at: {run_url}\n")
+[22:53:08]       ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:08]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\encodings\cp1252.py", line 19, in encode
+[22:53:08]       return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+[22:53:08]              ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[22:53:08]   UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f3c3' in position 0: character maps to <undefined>
+[22:53:08]   [init] litellm patchT pour streaming + /no_think Qwen3
+[22:53:08]   ======================================================================
+[22:53:08]     GEPA ù Optimisation des prompts de juges
+[22:53:08]   ======================================================================
+[22:53:08]     MLflow        : http://localhost:5000
+[22:53:08]     Endpoint LLM  : http://CHLASLITASSAPR1.lan.la.sqli.com:8080/v1
+[22:53:08]     ModFle juge   : qwen3.6-27b
+[22:53:08]     Reflection    : openai/qwen3.6-27b
+[22:53:08]     Juges         : ['JugeExploration', 'JugePrecisionTechnique', 'JugeRaisonnement', 'JugeAmeliorations']
+[22:53:08]   
+[22:53:08]     Historique chargT : history_iteration_1.json
+[22:53:08]     2 trace(s) chargTe(s)
+[22:53:08]   
+[22:53:08]     >> Prompt 'demo-client-JugeExploration' v2 chargT
+[22:53:08]   
+[22:53:08]   ======================================================================
+[22:53:08]     Optimisation GEPA : JugeExploration
+[22:53:08]   ======================================================================
+[22:53:08]     Exemples       : 2
+[22:53:08]     Verdicts attend.: ['INSUFFISANT', 'INSUFFISANT']
+[22:53:08]     Reflection model: openai/qwen3.6-27b
+[22:53:08]     [ERREUR] MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:08]     >> Prompt 'demo-client-JugePrecisionTechnique' v1 chargT
+[22:53:08]   
+[22:53:08]   ======================================================================
+[22:53:08]     Optimisation GEPA : JugePrecisionTechnique
+[22:53:08]   ======================================================================
+[22:53:08]     Exemples       : 2
+[22:53:08]     Verdicts attend.: ['INSUFFISANT', 'INCONNU']
+[22:53:08]     Reflection model: openai/qwen3.6-27b
+[22:53:08]     [ERREUR] MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:08]     >> Prompt 'demo-client-JugeRaisonnement' v1 chargT
+[22:53:08]   
+[22:53:08]   ======================================================================
+[22:53:08]     Optimisation GEPA : JugeRaisonnement
+[22:53:08]   ======================================================================
+[22:53:08]     Exemples       : 2
+[22:53:08]     Verdicts attend.: ['+ AM+LIORER', 'INCONNU']
+[22:53:08]     Reflection model: openai/qwen3.6-27b
+[22:53:08]     [ERREUR] MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:08]     >> Prompt 'demo-client-JugeAmeliorations' v1 chargT
+[22:53:08]   
+[22:53:08]   ======================================================================
+[22:53:08]     Optimisation GEPA : JugeAmeliorations
+[22:53:08]   ======================================================================
+[22:53:08]     Exemples       : 2
+[22:53:08]     Verdicts attend.: ['+ AM+LIORER', 'INCONNU']
+[22:53:08]     Reflection model: openai/qwen3.6-27b
+[22:53:08]     [ERREUR] MlflowException: Malformed model uri 'openai/qwen3.6-27b'. The URI must be in the format of <provider>:/<model-name>, e.g., 'openai:/gpt-4.1-mini'.
+[22:53:09] === FIN : GEPA  Optimisation prompts juges (0.3 min) ===
+[22:53:09] === DEBUT : Juges iteration 2 (auto-ok) ===
+[22:53:17]   RTcupTration des traces depuis 'demo-client-agent'...
+[22:53:17]   System.Management.Automation.RemoteException
+[22:53:17]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:17]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:19]   System.Management.Automation.RemoteException
+[22:53:19]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:19]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:21]   System.Management.Automation.RemoteException
+[22:53:21]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:21]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:24]   System.Management.Automation.RemoteException
+[22:53:24]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:24]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:26]     [skip] Run FREE -- What are the main responsibilities of Om : question ou rTponse manquante
+[22:53:26]   System.Management.Automation.RemoteException
+[22:53:26]   Downloading artifacts:   0%|          | 0/1 [00:00<?, ?it/s]
+[22:53:26]   Downloading artifacts: 100%|##########| 1/1 [00:00<00:00, 249.35it/s]
+[22:53:26]   Downloading artifacts: 100%|##########| 1/1 [00:00<00:00, 236.65it/s]

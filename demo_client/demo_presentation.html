@@ -1,0 +1,1642 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IA pour l'Analyse de Code — Présentation executive</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <style>
+    :root {
+      --bg: #040D1E;
+      --panel: rgba(255,255,255,0.04);
+      --panel-strong: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.07);
+      --border-strong: rgba(255,255,255,0.15);
+      --blue: #2563EB;
+      --green: #10B981;
+      --amber: #F59E0B;
+      --red: #EF4444;
+      --text: #EEF2FF;
+      --muted: #8899BB;
+      --shadow: 0 8px 32px rgba(0,0,0,0.25);
+      --radius-lg: 22px;
+      --ease-out-cubic: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 20%, rgba(37,99,235,0.14), transparent 26%),
+        radial-gradient(circle at 82% 10%, rgba(16,185,129,0.09), transparent 24%),
+        radial-gradient(circle at 50% 82%, rgba(245,158,11,0.08), transparent 28%),
+        linear-gradient(180deg, #040D1E 0%, #071126 100%);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      overflow: hidden;
+    }
+
+    .reveal {
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 17px;
+    }
+
+    .reveal .slides section {
+      padding: 28px 36px 36px;
+      text-align: left;
+      height: 100%;
+    }
+
+    .reveal .controls { color: rgba(238,242,255,0.72); }
+    .reveal .progress {
+      color: var(--blue);
+      height: 6px;
+      background: rgba(255,255,255,0.08);
+    }
+    .reveal .progress span {
+      background: linear-gradient(90deg, var(--blue), #5B8CFF);
+      box-shadow: 0 0 24px rgba(37,99,235,0.28);
+    }
+
+    .slide-shell {
+      position: relative;
+      min-height: 920px;
+      padding: 34px 34px 28px;
+      border-radius: 34px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.015)),
+        rgba(4, 13, 30, 0.58);
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 72px rgba(0,0,0,0.34);
+    }
+
+    .slide-shell::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0));
+      opacity: 0.65;
+    }
+
+    .slide-shell.pause {
+      background:
+        radial-gradient(circle at 50% 35%, rgba(37,99,235,0.18), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)),
+        rgba(4, 13, 30, 0.72);
+    }
+
+    .section-label {
+      position: absolute;
+      top: 24px;
+      left: 26px;
+      z-index: 3;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+
+    .slide-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      height: 100%;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+      margin-top: 26px;
+    }
+
+    h1, h2, h3, h4, p, li, span { margin: 0; }
+
+    h1 {
+      font-size: 76px;
+      line-height: 0.95;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 46px;
+      line-height: 1.05;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      max-width: 1200px;
+    }
+
+    h3 {
+      font-size: 24px;
+      line-height: 1.2;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    h4 {
+      font-size: 19px;
+      line-height: 1.35;
+      font-weight: 700;
+    }
+
+    .lead,
+    .body,
+    .reveal p,
+    .reveal li {
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--muted);
+      font-weight: 400;
+    }
+
+    .lead {
+      max-width: 980px;
+      color: #D8E1FF;
+      font-size: 22px;
+      line-height: 1.5;
+    }
+
+    .muted { color: var(--muted); }
+
+    .hero-grid,
+    .chart-layout,
+    .iter-layout,
+    .final-grid,
+    .diff-layout,
+    .compare-grid,
+    .stats-row,
+    .pain-grid,
+    .flow-row,
+    .live-features {
+      display: grid;
+      gap: 24px;
+    }
+
+    .hero-grid {
+      grid-template-columns: minmax(0, 1.06fr) minmax(420px, 0.94fr);
+      align-items: stretch;
+      min-height: 820px;
+    }
+
+    .hero-copy {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 26px;
+      padding: 28px 6px 12px 0;
+      max-width: 860px;
+    }
+
+    .pill-row,
+    .chip-row,
+    .legend-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pill,
+    .chip,
+    .legend-chip,
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 600;
+      backdrop-filter: blur(14px);
+    }
+
+    .chip { font-size: 13px; color: #DDE7FF; }
+    .badge { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+    .brandline {
+      font-size: 18px;
+      font-weight: 600;
+      color: #D9E4FF;
+      padding-top: 10px;
+    }
+
+    .pain-card,
+    .stats-card,
+    .flow-box,
+    .compare-card,
+    .chart-panel,
+    .metric-card,
+    .recommend-card,
+    .diff-panel,
+    .live-card,
+    .cta-panel,
+    .hero-visual,
+    .banner,
+    .baseline-card,
+    .pipeline-ring {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-visual {
+      position: relative;
+      min-height: 760px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      padding: 32px;
+    }
+
+    .hero-visual::before,
+    .graph-backdrop::before {
+      content: '';
+      position: absolute;
+      inset: -18%;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(37,99,235,0.18) 0 4px, transparent 5px),
+        radial-gradient(circle at 62% 24%, rgba(16,185,129,0.12) 0 3px, transparent 4px),
+        radial-gradient(circle at 78% 58%, rgba(245,158,11,0.14) 0 4px, transparent 5px),
+        radial-gradient(circle at 34% 76%, rgba(37,99,235,0.12) 0 3px, transparent 4px),
+        radial-gradient(circle at 82% 82%, rgba(16,185,129,0.10) 0 5px, transparent 6px);
+      animation: drift 20s var(--ease-out-cubic) infinite alternate;
+      opacity: 0.82;
+    }
+
+    .hero-visual::after {
+      content: '';
+      position: absolute;
+      width: 560px;
+      height: 560px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(37,99,235,0.18), transparent 64%);
+      filter: blur(10px);
+      animation: pulse 6s var(--ease-out-cubic) infinite;
+    }
+
+    .hero-svg {
+      width: 90%;
+      max-width: 560px;
+      position: relative;
+      z-index: 1;
+      filter: drop-shadow(0 0 28px rgba(37,99,235,0.20));
+    }
+
+    .hero-svg .node {
+      fill: #F8FBFF;
+      opacity: 0.95;
+      animation: nodePulse 4s var(--ease-out-cubic) infinite;
+    }
+
+    .hero-svg .node:nth-of-type(3n) { animation-delay: 0.45s; }
+    .hero-svg .node:nth-of-type(4n) { animation-delay: 0.9s; }
+
+    .hero-svg .edge {
+      stroke: url(#edgeGradient);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-dasharray: 18 14;
+      opacity: 0.86;
+      animation: dash 10s linear infinite;
+    }
+
+    .hero-micro {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 24px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      z-index: 1;
+    }
+
+    .micro-chip {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.09);
+      color: #DCE7FF;
+      font-size: 13px;
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .title-stack { display: grid; gap: 18px; }
+
+    .pain-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 6px;
+    }
+
+    .pain-card,
+    .stats-card,
+    .flow-box,
+    .compare-card,
+    .metric-card,
+    .recommend-card,
+    .diff-panel,
+    .cta-panel,
+    .live-card,
+    .baseline-card {
+      padding: 26px;
+    }
+
+    .pain-card,
+    .cta-panel { min-height: 250px; }
+
+    .pain-card {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .pain-card svg,
+    .cta-icon svg,
+    .play-icon svg,
+    .flow-icon svg {
+      width: 38px;
+      height: 38px;
+      flex: none;
+    }
+
+    .stats-row {
+      grid-template-columns: 1.2fr 1fr 1fr;
+      align-items: stretch;
+    }
+
+    .stats-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 190px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .stats-card::after,
+    .metric-card::after,
+    .baseline-card::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: calc(var(--progress, 0.45) * 100%);
+      height: 4px;
+      border-radius: 0 999px 999px 0;
+      background: linear-gradient(90deg, var(--blue), #79A5FF);
+    }
+
+    .counter-label {
+      font-size: 12px;
+      line-height: 1;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(238,242,255,0.66);
+      font-weight: 700;
+    }
+
+    .counter-value {
+      font-size: 52px;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      font-weight: 800;
+      color: #FFFFFF;
+    }
+
+    .counter-value.small { font-size: 42px; }
+
+    .stats-detail {
+      font-size: 16px;
+      line-height: 1.6;
+      color: #D7E1FF;
+      max-width: 520px;
+    }
+
+    .flow-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-top: 8px;
+    }
+
+    .flow-row {
+      grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr) 90px minmax(0, 1fr) 90px minmax(0, 1fr);
+      align-items: stretch;
+    }
+
+    .flow-box {
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 16px;
+      text-align: center;
+      padding: 28px 20px;
+    }
+
+    .flow-box strong {
+      font-size: 24px;
+      line-height: 1.2;
+      color: #FFFFFF;
+      font-weight: 700;
+    }
+
+    .flow-box span {
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--muted);
+    }
+
+    .flow-arrow {
+      position: relative;
+      align-self: center;
+      height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(37,99,235,0.16), rgba(37,99,235,0.85));
+      overflow: hidden;
+    }
+
+    .flow-arrow::after {
+      content: '';
+      position: absolute;
+      top: -4px;
+      left: -25%;
+      width: 30%;
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.92), transparent);
+      animation: travel 2.8s var(--ease-out-cubic) infinite;
+    }
+
+    .compare-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin-top: 4px;
+    }
+
+    .compare-card {
+      min-height: 260px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .compare-card.bad {
+      border-color: rgba(239,68,68,0.22);
+      background: linear-gradient(180deg, rgba(239,68,68,0.08), rgba(255,255,255,0.03));
+    }
+
+    .compare-card.good {
+      border-color: rgba(16,185,129,0.24);
+      background: linear-gradient(180deg, rgba(16,185,129,0.09), rgba(255,255,255,0.03));
+    }
+
+    .compare-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      gap: 12px;
+    }
+
+    .compare-list li {
+      color: #E6EDFF;
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .compare-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 11px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.9;
+    }
+
+    .live-shell {
+      min-height: 820px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    .live-card {
+      max-width: 920px;
+      width: 100%;
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+    }
+
+    .play-ring {
+      width: 164px;
+      height: 164px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle, rgba(37,99,235,0.26), rgba(37,99,235,0.08));
+      border: 1px solid rgba(255,255,255,0.14);
+      box-shadow: 0 0 0 18px rgba(37,99,235,0.05), 0 0 56px rgba(37,99,235,0.16);
+      animation: pulse 4.2s var(--ease-out-cubic) infinite;
+    }
+
+    .play-icon svg { width: 62px; height: 62px; }
+
+    .live-title {
+      font-size: 62px;
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .live-features {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .live-feature {
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: #DCE6FF;
+      font-size: 15px;
+      line-height: 1.55;
+      font-weight: 500;
+    }
+
+    .chart-layout,
+    .iter-layout {
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      align-items: stretch;
+      margin-top: 4px;
+    }
+
+    .chart-panel {
+      padding: 24px 26px 18px;
+      min-height: 420px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      width: 100%;
+      height: 308px;
+    }
+
+    .legend-chip {
+      padding: 9px 12px;
+      font-size: 12px;
+      color: #DCE6FF;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .dot.green { background: var(--green); }
+    .dot.amber { background: var(--amber); }
+    .dot.red { background: var(--red); }
+
+    .mini-metrics,
+    .recommend-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .mini-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .recommend-list { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 18px; }
+
+    .metric-card {
+      position: relative;
+      min-height: 176px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .metric-card .status {
+      display: inline-flex;
+      width: fit-content;
+      padding: 8px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status.red { background: rgba(239,68,68,0.12); color: #FFB3B3; }
+    .status.amber { background: rgba(245,158,11,0.14); color: #FFD08A; }
+
+    .baseline-card {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 26px;
+      min-height: 204px;
+    }
+
+    .baseline-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .baseline-inline {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      color: #FFFFFF;
+    }
+
+    .baseline-inline strong {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .score-bar {
+      height: 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+
+    .score-fill {
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--amber), var(--red));
+      box-shadow: 0 0 24px rgba(245,158,11,0.18);
+      transition: width 1.5s var(--ease-out-cubic);
+    }
+
+    .recommend-card {
+      min-height: 142px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .diff-layout {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: stretch;
+      margin-top: 8px;
+    }
+
+    .diff-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-height: 430px;
+    }
+
+    .diff-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .bullet-list {
+      list-style: none;
+      padding: 0;
+      display: grid;
+      gap: 14px;
+    }
+
+    .bullet-list li {
+      position: relative;
+      padding-left: 18px;
+      color: #DFE8FF;
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .bullet-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 11px;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--blue);
+    }
+
+    .bullet-list.upgraded li::before { background: var(--green); }
+
+    .registry-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+
+    .iter-note {
+      padding: 16px 18px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #D7E2FF;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .key-message {
+      padding: 20px 22px;
+      border-radius: 20px;
+      background: linear-gradient(90deg, rgba(37,99,235,0.14), rgba(16,185,129,0.10));
+      border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .key-message strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 21px;
+      color: #FFFFFF;
+    }
+
+    .pipeline-ring {
+      position: relative;
+      min-height: 500px;
+      overflow: hidden;
+    }
+
+    .pipeline-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .pipeline-svg path {
+      stroke: rgba(37,99,235,0.76);
+      stroke-width: 3;
+      fill: none;
+      stroke-linecap: round;
+      stroke-dasharray: 10 14;
+      animation: dash 12s linear infinite;
+    }
+
+    .pipeline-node {
+      position: absolute;
+      width: 172px;
+      min-height: 76px;
+      padding: 15px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(8, 19, 42, 0.92);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.45;
+      color: #F6F9FF;
+      font-weight: 700;
+    }
+
+    .pipeline-node span {
+      display: block;
+      margin-top: 4px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .p1 { top: 24px; left: 50%; transform: translateX(-50%); }
+    .p2 { top: 110px; right: 30px; }
+    .p3 { top: 308px; right: 48px; }
+    .p4 { bottom: 24px; left: 50%; transform: translateX(-50%); }
+    .p5 { top: 308px; left: 48px; }
+    .p6 { top: 110px; left: 30px; }
+
+    .final-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 6px;
+    }
+
+    .cta-panel {
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .cta-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .banner {
+      margin-top: 8px;
+      padding: 28px 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: linear-gradient(90deg, rgba(37,99,235,0.16), rgba(16,185,129,0.10));
+    }
+
+    .banner h3 {
+      font-size: 38px;
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .sqli-brand {
+      margin-top: auto;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(238,242,255,0.54);
+      font-weight: 600;
+    }
+
+    @keyframes dash { to { stroke-dashoffset: -140; } }
+    @keyframes travel {
+      0% { left: -25%; }
+      100% { left: 104%; }
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.92; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+    @keyframes nodePulse {
+      0%, 100% { transform: scale(1); opacity: 0.86; }
+      50% { transform: scale(1.16); opacity: 1; }
+    }
+    @keyframes drift {
+      0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+      100% { transform: translate3d(20px, -18px, 0) rotate(4deg); }
+    }
+
+    @media (max-width: 1460px) {
+      .slide-shell { min-height: 860px; }
+      .hero-grid,
+      .chart-layout,
+      .iter-layout,
+      .diff-layout,
+      .pain-grid,
+      .stats-row,
+      .final-grid,
+      .compare-grid,
+      .live-features,
+      .mini-metrics,
+      .recommend-list,
+      .flow-row {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-micro { grid-template-columns: 1fr; }
+      .flow-arrow { height: 56px; width: 4px; justify-self: center; }
+      .flow-arrow::after {
+        top: -22%;
+        left: -4px;
+        width: 12px;
+        height: 30%;
+        background: linear-gradient(180deg, transparent, rgba(255,255,255,0.92), transparent);
+      }
+      .live-title { font-size: 50px; }
+      h1 { font-size: 60px; }
+      h2 { font-size: 38px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+      <section data-auto-animate>
+        <div class="slide-shell graph-backdrop">
+          <span class="section-label">01 · Couverture executive</span>
+          <div class="slide-content">
+            <div class="hero-grid">
+              <div class="hero-copy">
+                <div class="eyebrow">Fédération Patronale de Suisse · Présentation executive</div>
+                <div class="title-stack">
+                  <h1>IA pour l'Analyse de Code</h1>
+                  <p class="lead">Comprendre l'architecture logicielle en minutes, pas en semaines</p>
+                </div>
+                <div class="pill-row">
+                  <span class="pill">Analyse Automatisée</span>
+                  <span class="pill">Traçable &amp; Auditable</span>
+                  <span class="pill">Auto-apprenant</span>
+                  <span class="pill">Prêt pour la Production</span>
+                </div>
+                <p class="body">Une approche conçue pour éclairer rapidement les décisions sur des systèmes complexes&nbsp;: audit, transformation, onboarding et analyse d'impact.</p>
+                <div class="brandline">Une solution SQLI</div>
+              </div>
+
+              <div class="hero-visual">
+                <svg class="hero-svg" viewBox="0 0 600 420" aria-label="Réseau de graphe animé" role="img">
+                  <defs>
+                    <linearGradient id="edgeGradient" x1="0%" x2="100%" y1="0%" y2="0%">
+                      <stop offset="0%" stop-color="#2563EB"/>
+                      <stop offset="55%" stop-color="#7AA5FF"/>
+                      <stop offset="100%" stop-color="#10B981"/>
+                    </linearGradient>
+                  </defs>
+                  <line class="edge" x1="90" y1="90" x2="210" y2="140"></line>
+                  <line class="edge" x1="210" y1="140" x2="310" y2="80"></line>
+                  <line class="edge" x1="310" y1="80" x2="430" y2="160"></line>
+                  <line class="edge" x1="210" y1="140" x2="180" y2="280"></line>
+                  <line class="edge" x1="180" y1="280" x2="320" y2="310"></line>
+                  <line class="edge" x1="320" y1="310" x2="470" y2="260"></line>
+                  <line class="edge" x1="430" y1="160" x2="470" y2="260"></line>
+                  <line class="edge" x1="310" y1="80" x2="320" y2="310"></line>
+                  <line class="edge" x1="90" y1="90" x2="180" y2="280"></line>
+                  <line class="edge" x1="140" y1="210" x2="320" y2="310"></line>
+                  <circle class="node" cx="90" cy="90" r="12"></circle>
+                  <circle class="node" cx="210" cy="140" r="14"></circle>
+                  <circle class="node" cx="310" cy="80" r="10"></circle>
+                  <circle class="node" cx="430" cy="160" r="15"></circle>
+                  <circle class="node" cx="180" cy="280" r="13"></circle>
+                  <circle class="node" cx="320" cy="310" r="17"></circle>
+                  <circle class="node" cx="470" cy="260" r="12"></circle>
+                  <circle class="node" cx="140" cy="210" r="9"></circle>
+                </svg>
+                <div class="hero-micro">
+                  <div class="micro-chip">15&nbsp;000 entités de code analysées</div>
+                  <div class="micro-chip">Modèle LLM souverain</div>
+                  <div class="micro-chip">Traçabilité complète</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-auto-animate>
+        <div class="slide-shell">
+          <span class="section-label">02 · Le défi</span>
+          <div class="slide-content">
+            <div>
+              <div class="eyebrow">Constat</div>
+              <h2>La complexité logicielle ralentit la transformation digitale</h2>
+            </div>
+
+            <div class="pain-grid">
+              <article class="pain-card">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <circle cx="24" cy="24" r="23" stroke="rgba(255,255,255,0.16)"/>
+                  <path d="M24 12v12l8 5" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <div>
+                  <h3>Onboarding coûteux</h3>
+                  <p>Un nouveau développeur met 3 à 6 mois pour maîtriser une base de code existante.</p>
+                </div>
+              </article>
+
+              <article class="pain-card">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <circle cx="24" cy="24" r="23" stroke="rgba(255,255,255,0.16)"/>
+                  <path d="M24 14l11 20H13l11-20Z" stroke="#F59E0B" stroke-width="3" stroke-linejoin="round"/>
+                  <path d="M24 21v6" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="24" cy="31" r="1.8" fill="#F59E0B"/>
+                </svg>
+                <div>
+                  <h3>Risque de changement</h3>
+                  <p>Toute modification d'un système complexe expose à des effets de bord non anticipés.</p>
+                </div>
+              </article>
+
+              <article class="pain-card">
+                <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                  <circle cx="21" cy="21" r="9" stroke="#10B981" stroke-width="3"/>
+                  <path d="M28 28l9 9" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+                  <circle cx="24" cy="24" r="23" stroke="rgba(255,255,255,0.16)"/>
+                </svg>
+                <div>
+                  <h3>Audit difficile</h3>
+                  <p>L'analyse d'architecture manuelle prend des semaines et reste incomplète.</p>
+                </div>
+              </article>
+            </div>
+
+            <div class="stats-row">
+              <article class="stats-card" style="--progress:0.78;">
+                <div class="counter-label">Cartographie disponible</div>
+                <div class="counter-value js-counter" data-target="14996" data-suffix=" entités">0</div>
+                <p class="stats-detail">Une vision structurée de l'application, utilisable immédiatement pour l'audit, l'analyse d'impact et la priorisation.</p>
+              </article>
+
+              <article class="stats-card" style="--progress:0.62;">
+                <div class="counter-label">Relations identifiées</div>
+                <div class="counter-value small js-counter" data-target="28129" data-suffix=" liens">0</div>
+                <p>Les dépendances critiques entre composants sont documentées et navigables.</p>
+              </article>
+
+              <article class="stats-card" style="--progress:0.36;">
+                <div class="counter-label">Lecture executive</div>
+                <div class="counter-value small js-counter" data-target="7" data-suffix=" familles">0</div>
+                <p>Une lecture synthétique des grands blocs applicatifs, sans exploration manuelle exhaustive.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-auto-animate>
+        <div class="slide-shell">
+          <span class="section-label">03 · La solution</span>
+          <div class="slide-content">
+            <div>
+              <div class="eyebrow">Solution</div>
+              <h2>GraphAgent&nbsp;: votre expert IA de la codebase</h2>
+            </div>
+
+            <div class="flow-shell">
+              <div class="flow-row">
+                <div class="flow-box">
+                  <div class="flow-icon">
+                    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                      <rect x="8" y="10" width="32" height="20" rx="8" stroke="#2563EB" stroke-width="3"/>
+                      <path d="M16 36h16" stroke="#2563EB" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <strong>Votre question</strong>
+                  <span>Ex. «&nbsp;Quel est l'impact d'une évolution sur le parcours client&nbsp;?&nbsp;»</span>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-box">
+                  <div class="flow-icon">
+                    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                      <path d="M16 17c0-4.4 3.6-8 8-8s8 3.6 8 8v4h3a3 3 0 0 1 3 3v10H10V24a3 3 0 0 1 3-3h3v-4Z" stroke="#10B981" stroke-width="3" stroke-linejoin="round"/>
+                      <circle cx="24" cy="17" r="3" fill="#10B981"/>
+                    </svg>
+                  </div>
+                  <strong>Agent IA</strong>
+                  <span>Il structure l'investigation, vérifie les dépendances et consolide une réponse fiable.</span>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-box">
+                  <div class="flow-icon">
+                    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                      <circle cx="13" cy="16" r="4" stroke="#F59E0B" stroke-width="3"/>
+                      <circle cx="35" cy="14" r="4" stroke="#F59E0B" stroke-width="3"/>
+                      <circle cx="24" cy="32" r="4" stroke="#F59E0B" stroke-width="3"/>
+                      <path d="M17 18l14-2M15 19l7 10M33 18l-6 10" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <strong>Exploration du graphe de code</strong>
+                  <span>L'IA parcourt les composants pertinents et relie les éléments clés du système.</span>
+                </div>
+                <div class="flow-arrow"></div>
+                <div class="flow-box">
+                  <div class="flow-icon">
+                    <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                      <path d="M14 12h20a4 4 0 0 1 4 4v18l-8-5-8 5-8-5-8 5V16a4 4 0 0 1 4-4Z" stroke="#2563EB" stroke-width="3" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <strong>Réponse citée et traçable</strong>
+                  <span>Une restitution argumentée, auditable et reproductible pour vos équipes.</span>
+                </div>
+              </div>
+
+              <div class="chip-row">
+                <span class="chip">Réponse en &lt; 10 min</span>
+                <span class="chip">Modèle IA Qwen3 (local, souverain)</span>
+                <span class="chip">7 traces générées</span>
+              </div>
+
+              <div class="compare-grid">
+                <article class="compare-card bad">
+                  <h3>Sans GraphAgent</h3>
+                  <ul class="compare-list">
+                    <li>Semaines d'investigation manuelle</li>
+                    <li>Risque d'erreur et d'oubli</li>
+                    <li>Impossible à auditer</li>
+                  </ul>
+                </article>
+
+                <article class="compare-card good">
+                  <h3>Avec GraphAgent</h3>
+                  <ul class="compare-list">
+                    <li>Réponse en minutes, citant les sources exactes</li>
+                    <li>Exploration exhaustive et reproductible</li>
+                    <li>Chaque décision tracée dans MLflow</li>
+                  </ul>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-auto-animate data-autoslide="0">
+        <div class="slide-shell pause">
+          <span class="section-label">04 · Démonstration live</span>
+          <div class="slide-content live-shell">
+            <div class="live-card">
+              <div class="play-ring">
+                <div class="play-icon" aria-hidden="true">
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <circle cx="32" cy="32" r="31" stroke="rgba(255,255,255,0.18)"/>
+                    <path d="M27 22.5 44 32 27 41.5V22.5Z" fill="#EEF2FF"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="eyebrow">Pause démonstration</div>
+              <div class="live-title">Démonstration en direct</div>
+              <p class="lead" style="max-width:760px; text-align:center;">Navigation intelligente d'architecture logicielle</p>
+              <div class="live-features">
+                <div class="live-feature">Interface MLflow</div>
+                <div class="live-feature">Traces en temps réel</div>
+                <div class="live-feature">Métriques de qualité</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-auto-animate>
+        <div class="slide-shell">
+          <span class="section-label">05 · Évaluation qualité</span>
+          <div class="slide-content">
+            <div>
+              <div class="eyebrow">Pilotage qualité</div>
+              <h2>Qualité mesurée en continu par 4 critères indépendants</h2>
+            </div>
+
+            <div class="chart-layout">
+              <div class="chart-panel">
+                <div class="chart-wrap"><canvas id="judgesRadar"></canvas></div>
+                <div class="legend-row">
+                  <span class="legend-chip"><span class="dot red"></span> Niveau faible</span>
+                  <span class="legend-chip"><span class="dot amber"></span> En progression</span>
+                  <span class="legend-chip"><span class="dot green"></span> Niveau cible</span>
+                </div>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:16px;">
+                <div class="baseline-card" style="--progress:0.12;">
+                  <div class="baseline-header">
+                    <div>
+                      <div class="counter-label">Base de référence</div>
+                      <h3>Itération initiale — base de référence mesurée</h3>
+                    </div>
+                    <span class="badge">Itération 0</span>
+                  </div>
+                  <p>Le dispositif est instrumenté dès le départ&nbsp;: nous mesurons objectivement la qualité avant toute optimisation.</p>
+                  <div class="baseline-inline"><strong>12%</strong><span class="muted">de satisfaction globale des critères à ce stade initial</span></div>
+                  <div class="score-bar"><div class="score-fill" data-width="12%"></div></div>
+                </div>
+
+                <div class="mini-metrics">
+                  <article class="metric-card" style="--progress:0.00;">
+                    <div class="counter-label">Couverture</div>
+                    <h4>L'agent a-t-il exploré tous les composants pertinents&nbsp;?</h4>
+                    <div class="status red">À renforcer</div>
+                  </article>
+
+                  <article class="metric-card" style="--progress:0.00;">
+                    <div class="counter-label">Précision</div>
+                    <h4>Les informations citées correspondent-elles au code réel&nbsp;?</h4>
+                    <div class="status red">À renforcer</div>
+                  </article>
+
+                  <article class="metric-card" style="--progress:0.25;">
+                    <div class="counter-label">Raisonnement</div>
+                    <h4>Le chemin de navigation est-il logique&nbsp;?</h4>
+                    <div class="status amber">En progression</div>
+                  </article>
+
+                  <article class="metric-card" style="--progress:0.25;">
+                    <div class="counter-label">Recommandations</div>
+                    <h4>Les axes d'amélioration sont-ils concrets&nbsp;?</h4>
+                    <div class="status amber">En progression</div>
+                  </article>
+                </div>
+              </div>
+            </div>
+
+            <div class="recommend-list">
+              <article class="recommend-card fragment fade-up" data-fragment-index="1">
+                <h4>Élargir automatiquement le périmètre analysé</h4>
+                <p>Inclure systématiquement les dépendances critiques pour éviter les angles morts dans l'analyse.</p>
+              </article>
+              <article class="recommend-card fragment fade-up" data-fragment-index="2">
+                <h4>Exiger une preuve de bout en bout</h4>
+                <p>Fonder chaque réponse sur une exploration effective et documentée, non sur une estimation.</p>
+              </article>
+              <article class="recommend-card fragment fade-up" data-fragment-index="3">
+                <h4>Valider les points sensibles avant conclusion</h4>
+                <p>Renforcer les contrôles sur les composants les plus risqués afin de sécuriser les recommandations.</p>
+              </article>
+              <article class="recommend-card fragment fade-up" data-fragment-index="4">
+                <h4>Accélérer la restitution pour le terrain</h4>
+                <p>Gagner du temps sur l'exploration afin d'augmenter la couverture sans allonger le cycle de décision.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-auto-animate>
+        <div class="slide-shell">
+          <span class="section-label">06 · Traçabilité &amp; Versioning</span>
+          <div class="slide-content">
+            <div>
+              <div class="eyebrow">Gouvernance</div>
+              <h2>Chaque décision de l'IA est versionnée et auditable</h2>
+            </div>
+
+            <div class="diff-layout">
+              <article class="diff-panel">
+                <div class="diff-header">
+                  <div>
+                    <div class="counter-label">Version 1</div>
+                    <h3>Instructions initiales — comportement de base</h3>
+                  </div>
+                  <span class="badge">baseline</span>
+                </div>
+                <ul class="bullet-list">
+                  <li>Analyse la demande exprimée par l'utilisateur.</li>
+                  <li>Explore les composants les plus visibles du système.</li>
+                  <li>Produit une première réponse citée.</li>
+                  <li>Conserve un historique d'exécution pour relecture.</li>
+                </ul>
+              </article>
+
+              <article class="diff-panel">
+                <div class="diff-header">
+                  <div>
+                    <div class="counter-label">Version 2</div>
+                    <h3>Instructions enrichies par GEPA — comportement optimisé</h3>
+                  </div>
+                  <span class="badge">enrichi</span>
+                </div>
+                <ul class="bullet-list upgraded">
+                  <li class="fragment fade-up" data-fragment-index="1">Étend automatiquement l'analyse aux dépendances critiques.</li>
+                  <li class="fragment fade-up" data-fragment-index="2">Vérifie les points sensibles avant toute conclusion.</li>
+                  <li class="fragment fade-up" data-fragment-index="3">Hiérarchise les impacts et les zones de risque.</li>
+                  <li class="fragment fade-up" data-fragment-index="4">Formalise des recommandations directement actionnables.</li>
+                  <li class="fragment fade-up" data-fragment-index="5">Prépare une restitution comparable d'une version à l'autre.</li>
+                </ul>
+              </article>
+            </div>
+
+            <div class="registry-note">
+              <p class="lead" style="margin:0; max-width:none;">Chaque version est datée, comparée et réversible dans MLflow Prompt Registry.</p>
+              <span class="badge">Traçabilité continue</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-auto-animate>
+        <div class="slide-shell">
+          <span class="section-label">07 · Amélioration automatique</span>
+          <div class="slide-content">
+            <div>
+              <div class="eyebrow">Amélioration continue</div>
+              <h2>L'agent s'améliore automatiquement à chaque itération</h2>
+            </div>
+
+            <div class="iter-layout">
+              <div class="chart-panel">
+                <div class="chart-wrap"><canvas id="gepaLine"></canvas></div>
+                <div class="iter-note">Progression mesurée sur traces réelles de production.</div>
+                <div class="key-message">
+                  <strong>L'amélioration ne nécessite aucune intervention manuelle après configuration</strong>
+                  <span class="body">L'agent apprend de ses traces, de son évaluation et des recommandations générées pour enrichir sa prochaine version.</span>
+                </div>
+              </div>
+
+              <div class="pipeline-ring">
+                <svg class="pipeline-svg" viewBox="0 0 600 460" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M300 64 C415 64, 510 135, 522 230 C532 324, 435 395, 300 395 C170 395, 72 325, 78 230 C84 134, 181 64, 300 64"></path>
+                </svg>
+                <div class="pipeline-node p1">Agent<span>exécute la demande</span></div>
+                <div class="pipeline-node p2">Exploration<span>parcourt le système</span></div>
+                <div class="pipeline-node p3">Évaluation<span>mesure la qualité</span></div>
+                <div class="pipeline-node p4">Analyse<span>priorise les écarts</span></div>
+                <div class="pipeline-node p5">Optimisation<span>ajuste les consignes</span></div>
+                <div class="pipeline-node p6">Nouveau prompt<span>version suivante prête</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section data-auto-animate>
+        <div class="slide-shell">
+          <span class="section-label">08 · Conclusion &amp; Prochaines étapes</span>
+          <div class="slide-content">
+            <div>
+              <div class="eyebrow">Conclusion</div>
+              <h2>Une solution prête pour la production</h2>
+            </div>
+
+            <div class="final-grid">
+              <article class="cta-panel">
+                <div class="cta-icon" aria-hidden="true">
+                  <svg viewBox="0 0 48 48" fill="none">
+                    <path d="M24 8 11 14v9c0 10 5.8 19.4 13 23 7.2-3.6 13-13 13-23v-9L24 8Z" stroke="#2563EB" stroke-width="3" stroke-linejoin="round"/>
+                    <path d="M19 24l4 4 7-8" stroke="#2563EB" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3>Souveraineté</h3>
+                  <p>Modèle IA local, données qui ne quittent pas votre infrastructure.</p>
+                </div>
+              </article>
+
+              <article class="cta-panel">
+                <div class="cta-icon" aria-hidden="true">
+                  <svg viewBox="0 0 48 48" fill="none">
+                    <rect x="10" y="9" width="28" height="30" rx="6" stroke="#10B981" stroke-width="3"/>
+                    <path d="M17 19h14M17 25h14M17 31h8" stroke="#10B981" stroke-width="3" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3>Traçabilité</h3>
+                  <p>Chaque réponse est auditée, versionnée, reproductible.</p>
+                </div>
+              </article>
+
+              <article class="cta-panel">
+                <div class="cta-icon" aria-hidden="true">
+                  <svg viewBox="0 0 48 48" fill="none">
+                    <circle cx="16" cy="16" r="5" stroke="#F59E0B" stroke-width="3"/>
+                    <circle cx="32" cy="16" r="5" stroke="#F59E0B" stroke-width="3"/>
+                    <circle cx="24" cy="32" r="5" stroke="#F59E0B" stroke-width="3"/>
+                    <path d="M20.5 19.5 27.5 28M27.5 19.5 20.5 28" stroke="#F59E0B" stroke-width="3" stroke-linecap="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3>Évolutivité</h3>
+                  <p>S'adapte à n'importe quelle base de code, n'importe quel langage.</p>
+                </div>
+              </article>
+            </div>
+
+            <div class="banner">
+              <h3>Passons à l'étape suivante</h3>
+              <p class="lead" style="margin:0; max-width:none;">Déploiement, personnalisation et intégration à votre SI — planifions ensemble.</p>
+            </div>
+
+            <div class="sqli-brand">SQLI · Intelligence Artificielle Appliquée</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    const charts = {};
+
+    function animateCounter(el) {
+      if (!el || el.dataset.animated === 'true') return;
+      el.dataset.animated = 'true';
+      const target = Number(el.dataset.target || 0);
+      const suffix = el.dataset.suffix || '';
+      const duration = 1400;
+      const start = performance.now();
+      const formatter = new Intl.NumberFormat('fr-FR');
+
+      function step(now) {
+        const progress = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const value = Math.round(target * eased);
+        el.textContent = formatter.format(value) + suffix;
+        if (progress < 1) requestAnimationFrame(step);
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    function activateCounters(scope) {
+      scope.querySelectorAll('.js-counter').forEach(animateCounter);
+      scope.querySelectorAll('.score-fill').forEach((bar) => {
+        requestAnimationFrame(() => {
+          bar.style.width = bar.dataset.width || '0%';
+        });
+      });
+    }
+
+    function initRadar() {
+      const canvas = document.getElementById('judgesRadar');
+      if (!canvas || charts.judgesRadar) return;
+
+      charts.judgesRadar = new Chart(canvas, {
+        type: 'radar',
+        data: {
+          labels: ['Couverture', 'Précision', 'Raisonnement', 'Recommandations'],
+          datasets: [{
+            label: 'Base de référence',
+            data: [0, 0, 25, 25],
+            fill: true,
+            backgroundColor: 'rgba(37, 99, 235, 0.18)',
+            borderColor: '#2563EB',
+            pointBackgroundColor: ['#EF4444', '#EF4444', '#F59E0B', '#F59E0B'],
+            pointBorderColor: '#FFFFFF',
+            pointRadius: 5,
+            pointHoverRadius: 6,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 1800, easing: 'easeOutQuart' },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#EEF2FF',
+                font: { family: 'Inter', size: 12, weight: 600 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.label}: ${ctx.raw}%`
+              }
+            }
+          },
+          scales: {
+            r: {
+              min: 0,
+              max: 100,
+              ticks: { display: false, stepSize: 25 },
+              angleLines: { color: 'rgba(255,255,255,0.12)' },
+              grid: { color: 'rgba(255,255,255,0.12)' },
+              pointLabels: {
+                color: '#DCE6FF',
+                font: { family: 'Inter', size: 12, weight: 600 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function initLine() {
+      const canvas = document.getElementById('gepaLine');
+      if (!canvas || charts.gepaLine) return;
+
+      charts.gepaLine = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: ['Iter 0', 'Iter 1', 'Iter 2'],
+          datasets: [{
+            label: 'Taux de satisfaction des critères qualité',
+            data: [0, 50, 72],
+            borderColor: '#10B981',
+            backgroundColor: 'rgba(16, 185, 129, 0.12)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 3,
+            pointRadius: [6, 7, 7],
+            pointBackgroundColor: ['#EF4444', '#F59E0B', '#10B981']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: { duration: 1900, easing: 'easeOutQuart' },
+          plugins: {
+            legend: {
+              labels: {
+                color: '#EEF2FF',
+                font: { family: 'Inter', size: 12, weight: 600 }
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.raw}%`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255,255,255,0.08)' },
+              ticks: {
+                color: '#DCE6FF',
+                font: { family: 'Inter', size: 12, weight: 500 }
+              }
+            },
+            y: {
+              min: 0,
+              max: 100,
+              grid: { color: 'rgba(255,255,255,0.10)' },
+              ticks: {
+                color: '#DCE6FF',
+                callback: (v) => `${v}%`,
+                font: { family: 'Inter', size: 12, weight: 500 }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function handleSlide(event) {
+      const current = event.currentSlide || event;
+      if (!current) return;
+      activateCounters(current);
+      if (current.querySelector('#judgesRadar')) initRadar();
+      if (current.querySelector('#gepaLine')) initLine();
+    }
+
+    function setupIframeFallback() {
+      const iframe = document.getElementById('graphFrame');
+      if (!iframe) return;
+      const primary = iframe.getAttribute('src');
+      const fallback = iframe.dataset.fallbackSrc;
+
+      try {
+        const testUrl = new URL(primary, window.location.href);
+        fetch(testUrl.href, { method: 'HEAD' })
+          .then((response) => {
+            if (!response.ok && fallback) iframe.src = fallback;
+          })
+          .catch(() => {
+            if (fallback) iframe.src = fallback;
+          });
+      } catch (e) {
+        if (fallback) iframe.src = fallback;
+      }
+    }
+
+    Reveal.initialize({
+      hash: true,
+      controls: true,
+      progress: true,
+      center: false,
+      width: 1920,
+      height: 1080,
+      margin: 0.04,
+      transition: 'fade',
+      backgroundTransition: 'fade',
+      autoAnimate: true,
+      autoAnimateEasing: 'ease-out',
+      autoAnimateDuration: 0.9,
+      autoSlide: 15000,
+      autoSlideStoppable: true,
+      keyboard: true,
+      navigationMode: 'default'
+    });
+
+    Reveal.on('ready', handleSlide);
+    Reveal.on('slidechanged', handleSlide);
+    document.addEventListener('DOMContentLoaded', setupIframeFallback);
+  </script>
+</body>
+</html>

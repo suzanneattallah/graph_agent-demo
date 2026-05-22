@@ -100,8 +100,6 @@ def _llm_call(
                 messages=messages,
                 temperature=temperature,
                 stream=True,
-                max_tokens=1024,
-                extra_body={"chat_template_kwargs": {"enable_thinking": False}},
             ):
                 if chunk.choices:
                     delta = chunk.choices[0].delta

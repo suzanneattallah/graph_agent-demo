@@ -1,0 +1,16 @@
+[22:12:32] Configuration anti-veille...
+[22:12:32] Pipeline overnight demarre  log : C:\Projet\overnight_run_20260521_2212.log
+[22:12:32] Ordi : laisser allume, ecran peut etre ferme
+[22:12:32] === DEBUT : Generation traces  qwen3.6-35b-a3b ===
+[22:12:44]   GTnTration de 7 traces MLflow pour mall...
+[22:12:44]   ModFle     : qwen3.6-35b-a3b
+[22:12:44]   API base   : http://CHLASLITASSAPR1.lan.la.sqli.com:8080/v1
+[22:12:44]   Experiment : demo-client-agent
+[22:12:44]   
+[22:12:44]   ================================================================================
+[22:12:44]   [1/7] Type: SHALLOW
+[22:12:44]   Question : What are the main responsibilities of OmsOrderController and which HTTP endpoints does it expose? List all handler methods.
+[22:12:45]   ================================================================================
+[22:14:17]   Thinking...
+[22:14:17] === FIN : Generation traces  qwen3.6-35b-a3b (1.8 min) ===
+[22:14:17] === DEBUT : GEPA  Optimisation prompts juges ===

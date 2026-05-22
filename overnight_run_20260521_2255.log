@@ -1,0 +1,83 @@
+[22:55:59] Configuration anti-veille...
+[22:55:59] Pipeline overnight demarre  log : C:\Projet\overnight_run_20260521_2255.log
+[22:55:59] Ordi : laisser allume, ecran peut etre ferme
+[22:55:59] SKIP : Traces
+[22:55:59] === DEBUT : GEPA  Optimisation prompts juges ===
+[22:56:09]   C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\data\dataset_source_registry.py:148: UserWarning: The specified dataset source can be interpreted in multiple ways: LocalArtifactDatasetSource, LocalArtifactDatasetSource. MLflow will assume that this is a LocalArtifactDatasetSource source.
+[22:56:09]     return _dataset_source_registry.resolve(
+[22:56:10]   [init] litellm patchT pour streaming + /no_think Qwen3
+[22:56:10]   ======================================================================
+[22:56:10]     GEPA ù Optimisation des prompts de juges
+[22:56:10]   ======================================================================
+[22:56:10]     MLflow        : http://localhost:5000
+[22:56:10]     Endpoint LLM  : http://CHLASLITASSAPR1.lan.la.sqli.com:8080/v1
+[22:56:10]     ModFle juge   : qwen3.6-27b
+[22:56:10]     Reflection    : openai:/qwen3.6-27b
+[22:56:10]     Juges         : ['JugeExploration', 'JugePrecisionTechnique', 'JugeRaisonnement', 'JugeAmeliorations']
+[22:56:10]   
+[22:56:10]     Historique chargT : history_iteration_1.json
+[22:56:10]     2 trace(s) chargTe(s)
+[22:56:10]   
+[22:56:10]     >> Prompt 'demo-client-JugeExploration' v2 chargT
+[22:56:10]   
+[22:56:10]   ======================================================================
+[22:56:10]     Optimisation GEPA : JugeExploration
+[22:56:10]   ======================================================================
+[22:56:10]     Exemples       : 2
+[22:56:10]     Verdicts attend.: ['INSUFFISANT', 'INSUFFISANT']
+[22:56:10]     Reflection model: openai:/qwen3.6-27b
+[22:56:10]   System.Management.Automation.RemoteException
+[23:00:37]   GEPA Optimization:   0%|          | 0/60 [00:00<?, ?rollouts/s]Traceback (most recent call last):
+[23:00:37]     File "C:\Projet\demo_client\5_optimize_judges.py", line 426, in optimize_judge
+[23:00:37]       result = optimize_prompts(
+[23:00:37]           predict_fn=make_predict_fn(prompt_name),
+[23:00:37]       ...<3 lines>...
+[23:00:37]           scorers=[verdict_match, has_required_structure, recommendation_alignment],
+[23:00:37]       )
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\telemetry\track.py", line 24, in wrapper
+[23:00:37]       return func(*args, **kwargs)
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimize.py", line 231, in optimize_prompts
+[23:00:37]       optimizer_output = optimizer.optimize(
+[23:00:37]           eval_fn, converted_train_data, target_prompts_dict, enable_tracking
+[23:00:37]       )
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimizers\gepa_optimizer.py", line 359, in optimize
+[23:00:37]       gepa_result = gepa.optimize(**kwargs)
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\gepa\api.py", line 385, in optimize
+[23:00:37]       state = engine.run()
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\gepa\core\engine.py", line 288, in run
+[23:00:37]       state = initialize_gepa_state(
+[23:00:37]           run_dir=self.run_dir,
+[23:00:37]       ...<5 lines>...
+[23:00:37]           evaluation_cache=self._initial_evaluation_cache,
+[23:00:37]       )
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\gepa\core\state.py", line 644, in initialize_gepa_state
+[23:00:37]       eval_result = valset_evaluator(seed_candidate)
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\gepa\core\engine.py", line 275, in valset_evaluator
+[23:00:37]       outputs, scores, objective_scores = self.evaluator(valset.fetch(all_ids), program)
+[23:00:37]                                           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\gepa\core\engine.py", line 95, in evaluator
+[23:00:37]       eval_result = adapter.evaluate(batch, program, capture_traces=False)
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimizers\gepa_optimizer.py", line 200, in evaluate
+[23:00:37]       self._log_validation_candidate(candidate, eval_results)
+[23:00:37]       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\genai\optimize\optimizers\gepa_optimizer.py", line 289, in _log_validation_candidate
+[23:00:37]       f.write(prompt_text)
+[23:00:37]       ~~~~~~~^^^^^^^^^^^^^
+[23:00:37]     File "C:\Users\sattallah\AppData\Local\anaconda2\Lib\encodings\cp1252.py", line 19, in encode
+[23:00:37]       return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+[23:00:37]              ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[23:00:37]   UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 789: character maps to <undefined>
+[23:00:37]   System.Management.Automation.RemoteException
+[23:00:37]   GEPA Optimization:   0%|          | 0/60 [04:27<?, ?rollouts/s]
+[23:00:40]   C:\Users\sattallah\AppData\Local\anaconda2\Lib\site-packages\mlflow\data\dataset_source_registry.py:148: UserWarning: The specified dataset source can be interpreted in multiple ways: LocalArtifactDatasetSource, LocalArtifactDatasetSource. MLflow will assume that this is a LocalArtifactDatasetSource source.
+[23:00:40]     return _dataset_source_registry.resolve(
+[23:00:40]     [ERREUR] UnicodeEncodeError: 'charmap' codec can't encode character '\u2192' in position 789: character maps to <undefined>
+[23:00:40]     >> Prompt 'demo-client-JugePrecisionTechnique' v1 chargT
+[23:00:40]   
+[23:00:40]   ======================================================================
+[23:00:40]     Optimisation GEPA : JugePrecisionTechnique
+[23:00:40]   ======================================================================
+[23:00:40]     Exemples       : 2
+[23:00:40]     Verdicts attend.: ['INSUFFISANT', 'INCONNU']
+[23:00:40]     Reflection model: openai:/qwen3.6-27b
+[23:00:40]   System.Management.Automation.RemoteException

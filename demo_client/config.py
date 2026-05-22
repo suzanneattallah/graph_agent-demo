@@ -12,7 +12,7 @@ JUDGE_PREFIX = "demo-client"
 ARTIFACTS_DIR = Path(__file__).parent / "artifact"
 
 REMOTE_API_BASE = "http://CHLASLITASSAPR1.lan.la.sqli.com:8080/v1"
-AGENT_MODEL = "qwen3.6-27b"
+AGENT_MODEL = "qwen3.6-35b-a3b"
 JUDGE_MODEL = "qwen3.6-27b"
 REFINER_MODEL = "qwen3.6-27b"
 API_KEY = "none"
