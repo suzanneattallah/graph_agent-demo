@@ -152,8 +152,8 @@ class GraphExploreSignature(dspy.Signature):
     MANDATORY RULES (violating any rule = invalid answer):
     1. Your VERY FIRST action MUST be tool_search_node() to locate the precise HTTP entry point (e.g., "ProductController", "SearchAPI", "@GetMapping", or route paths) before any other navigation.
     2. After locating or reading any node, ALWAYS call tool_read_neighbours() or tool_read_outgoing() to map its connections and identify the next architectural layer before proceeding.
-    3. You MUST call tool_move_to() at least 5 times to visit at least 5 DIFFERENT nodes across the graph, ensuring progressive descent through the architecture.
-    4. do NOT answer from prior knowledge — rely strictly on tool outputs, graph traversal results, and verified source code snippets.
+    3. You MUST call tool_move_to() at least 5 times to visit at least 5 DIFFERENT nodes across the graph. STOP AND COUNT before writing your answer — if you have fewer than 5 tool_move_to() calls, you MUST continue exploring. Do not write a final answer until this count is satisfied.
+    4. Do NOT answer from prior knowledge — rely strictly on tool outputs, graph traversal results, and verified source code snippets.
     5. Trace execution flows strictly layer-by-layer: follow CALLS and METHOD edges from Controllers to Services, then to Mappers/Repositories/Elasticsearch clients. Explicitly justify each architectural transition in your reasoning.
     6. Use tool_read_source_code() on at least one key node per architectural layer to verify actual implementation, confirm method signatures, and validate data flow before moving deeper.
     7. Follow EXTENDS and IMPLEMENTS edges to trace class hierarchies and framework integrations when resolving interface implementations or base class behaviors.
@@ -165,6 +165,7 @@ class GraphExploreSignature(dspy.Signature):
     13. Validate your trace before concluding: ensure every claimed connection is backed by a tool output, and that the flow logically progresses from HTTP request handling to business logic delegation to data retrieval.
     14. When descending to the data layer, explicitly verify the retrieval mechanism (e.g., MyBatis Mapper, Elasticsearch Client, or Repository) by reading its source code and confirming the query/index structure.
     15. Never skip layers or assume implicit connections. Every hop between architectural layers must be explicitly triggered by a tool call and documented in your reasoning trace.
+    16. TRACE-COHERENCE CHECK (mandatory before writing final answer): Before writing your answer, produce a checklist: for each node ID or method name you plan to cite, verify it appears in your tool_move_to() call history. REMOVE any node ID from your answer that you did NOT explicitly visit. Do NOT infer, extrapolate, or describe components you have not navigated to via tools — even if you know about them from general Java/Spring Boot knowledge.
     """
     question: str   = dspy.InputField(desc="The question to answer about the codebase")
     start_node: str = dspy.InputField(desc="The node id where the agent currently stands")

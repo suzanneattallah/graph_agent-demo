@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>GraphAgent — Pipeline Itératif</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e8e8e8;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin-bottom: 18px;
+    color: #a8c7fa;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+  .pipeline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 720px;
+  }
+
+  /* ── Blocs ── */
+  .block {
+    width: 100%;
+    border-radius: 10px;
+    padding: 12px 20px;
+    text-align: center;
+    font-size: 0.85rem;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s, transform 0.5s, box-shadow 0.4s;
+    position: relative;
+  }
+  .block.visible { opacity: 1; transform: translateY(0); }
+  .block.active  { box-shadow: 0 0 18px 4px var(--glow); }
+
+  .block-context  { background:#1e3a2f; border:2px solid #2ecc71; --glow:#2ecc71; color:#2ecc71; }
+  .block-agent    { background:#1a2a3a; border:2px solid #3498db; --glow:#3498db; color:#3b9fe8; }
+  .block-val-ia   { background:#2e1e3a; border:2px solid #9b59b6; --glow:#9b59b6; color:#b07fd4; }
+  .block-gepa     { background:#3a2a1a; border:2px solid #e67e22; --glow:#e67e22; color:#e8933a; }
+  .block-human    { background:#1e2a3a; border:2px solid #1abc9c; --glow:#1abc9c; color:#1abc9c; }
+  .block-end      { background:#1e3a20; border:2px solid #27ae60; --glow:#27ae60; color:#2ecc71; }
+
+  .block-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+    opacity: 0.7;
+  }
+  .block-title { font-size: 0.95rem; font-weight: 700; }
+  .block-sub { font-size: 0.75rem; opacity: 0.75; margin-top: 4px; }
+
+  /* ── Flèches ── */
+  .arrow {
+    width: 2px;
+    background: #444;
+    margin: 0 auto;
+    height: 0;
+    transition: height 0.4s;
+    position: relative;
+  }
+  .arrow.visible { height: 28px; }
+  .arrow::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid #444;
+  }
+  .arrow.colored { background: var(--col); }
+  .arrow.colored::after { border-top-color: var(--col); }
+
+  /* ── Row layout for decision + feedback ── */
+  .row {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    align-items: flex-start;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+  .row.visible { opacity: 1; }
+  .row .block { flex: 1; }
+
+  /* ── Badge metrics ── */
+  .metrics {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .metric {
+    background: rgba(255,255,255,0.07);
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.4s;
+  }
+  .metric.visible { opacity: 1; }
+  .metric.before { color: #e74c3c; }
+  .metric.after  { color: #2ecc71; }
+
+  /* ── Loop arrow ── */
+  .loop-label {
+    position: absolute;
+    right: -130px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65rem;
+    color: #e67e22;
+    opacity: 0;
+    transition: opacity 0.5s;
+    white-space: nowrap;
+    background: rgba(230,126,34,0.15);
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid #e67e22;
+  }
+  .loop-label.visible { opacity: 1; }
+
+  /* ── Progress bar ── */
+  #progress {
+    width: 720px;
+    height: 4px;
+    background: #222;
+    border-radius: 2px;
+    margin-bottom: 14px;
+    overflow: hidden;
+  }
+  #progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #9b59b6, #e67e22, #27ae60);
+    width: 0%;
+    transition: width 0.6s;
+    border-radius: 2px;
+  }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap: 12px;
+    margin-top: 18px;
+  }
+  button {
+    background: #1e3040;
+    border: 1px solid #3498db;
+    color: #7ec8e3;
+    padding: 8px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    transition: background 0.2s;
+  }
+  button:hover { background: #253d52; }
+
+  .step-counter {
+    font-size: 0.75rem;
+    color: #666;
+    margin-top: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>🔁 GraphAgent — Pipeline d'Amélioration Itératif</h1>
+
+<div id="progress"><div id="progress-bar"></div></div>
+
+<div class="pipeline">
+
+  <!-- 1. Chargement contexte -->
+  <div class="block block-context" id="b1">
+    <div class="block-label">📦 Chargement Contexte</div>
+    <div class="block-title">Récupération depuis le Graphe Neo4j</div>
+    <div class="block-sub">GraphRAG · Nœuds code · Relations architecturales</div>
+  </div>
+
+  <div class="arrow" id="a1" style="--col:#3498db"></div>
+
+  <!-- 2. Agent IA -->
+  <div class="block block-agent" id="b2">
+    <div class="block-label">🤖 Agent IA</div>
+    <div class="block-title">Traitement de la tâche (qwen3.6-35b)</div>
+    <div class="block-sub">Navigation du graphe · Outils : move_to, search_node, read_neighbours</div>
+    <div class="metrics">
+      <span class="metric" id="m-traces">📊 Traces MLflow loggées</span>
+      <span class="metric" id="m-nodes">🔗 Nœuds visités tracés</span>
+    </div>
+  </div>
+
+  <div class="arrow" id="a2" style="--col:#9b59b6"></div>
+
+  <!-- 3. Validation IA -->
+  <div class="block block-val-ia" id="b3" style="position:relative">
+    <div class="block-label">🧑‍⚖️ Validation IA — 4 Juges LLM</div>
+    <div class="block-title">Analyse &amp; Évaluation des traces</div>
+    <div class="block-sub">JugeExploration · JugePrecision · JugeRaisonnement · JugeAmeliorations</div>
+    <div class="metrics">
+      <span class="metric before" id="m-before">Avant GEPA : score 0.167</span>
+      <span class="metric after" id="m-after">Après GEPA : score 0.833</span>
+    </div>
+    <span class="loop-label" id="loop-feedback">↩ feedback → amélioration agent</span>
+  </div>
+
+  <div class="arrow" id="a3" style="--col:#e67e22"></div>
+
+  <!-- 4. GEPA -->
+  <div class="block block-gepa" id="b4">
+    <div class="block-label">⚡ Optimisation GEPA (MLflow)</div>
+    <div class="block-title">Enrichissement des critères du Juge IA</div>
+    <div class="block-sub">GepaPromptOptimizer · Prompt v1 → v4 · +639 chars · Versioning complet</div>
+    <div class="metrics">
+      <span class="metric before" id="m-v1">v1 : 3 646 chars</span>
+      <span class="metric after" id="m-v4">v4 : 4 285 chars (+18%)</span>
+      <span class="metric after" id="m-score">score_global +600%</span>
+    </div>
+  </div>
+
+  <div class="arrow" id="a4" style="--col:#1abc9c"></div>
+
+  <!-- 5. Validation humaine -->
+  <div class="block block-human" id="b5">
+    <div class="block-label">👤 Validation Humaine</div>
+    <div class="block-title">Revue de code + Feedback expert</div>
+    <div class="block-sub">Retour humain intégré · Contrôle total via MLflow</div>
+  </div>
+
+  <div class="arrow" id="a5" style="--col:#27ae60"></div>
+
+  <!-- 6. Fin -->
+  <div class="block block-end" id="b6">
+    <div class="block-label">✅ Fin — Validation Expert</div>
+    <div class="block-title">Agent Graph validé · Traces archivées · Prompts versionnés</div>
+    <div class="block-sub">MLflow : expériences · runs · prompt registry · artifacts</div>
+  </div>
+
+</div>
+
+<div class="step-counter" id="step-counter">Étape 0 / 8</div>
+
+<div class="controls">
+  <button onclick="prevStep()">◀ Précédent</button>
+  <button onclick="nextStep()">Suivant ▶</button>
+  <button onclick="autoPlay()">▶ Auto</button>
+  <button onclick="resetAnim()">↺ Reset</button>
+</div>
+
+<script>
+const STEPS = [
+  // step 0 — initial (nothing)
+  () => {},
+
+  // step 1 — contexte
+  () => {
+    show('b1');
+    progress(10);
+  },
+
+  // step 2 — agent
+  () => {
+    showArrow('a1', '#2ecc71');
+    show('b2');
+    showMetric('m-traces');
+    showMetric('m-nodes');
+    progress(25);
+  },
+
+  // step 3 — validation IA (baseline)
+  () => {
+    showArrow('a2', '#9b59b6');
+    show('b3');
+    showMetric('m-before');
+    progress(40);
+  },
+
+  // step 4 — score baseline expliqué
+  () => {
+    activate('b3');
+    document.getElementById('loop-feedback').classList.add('visible');
+    progress(50);
+  },
+
+  // step 5 — GEPA
+  () => {
+    deactivate('b3');
+    showArrow('a3', '#e67e22');
+    show('b4');
+    showMetric('m-v1');
+    showMetric('m-v4');
+    showMetric('m-score');
+    progress(65);
+  },
+
+  // step 6 — après GEPA
+  () => {
+    activate('b4');
+    showMetric('m-after');
+    progress(78);
+  },
+
+  // step 7 — validation humaine
+  () => {
+    deactivate('b4');
+    showArrow('a4', '#1abc9c');
+    show('b5');
+    activate('b5');
+    progress(88);
+  },
+
+  // step 8 — fin
+  () => {
+    deactivate('b5');
+    showArrow('a5', '#27ae60');
+    show('b6');
+    activate('b6');
+    progress(100);
+  },
+];
+
+let current = 0;
+let autoTimer = null;
+
+function show(id) {
+  document.getElementById(id).classList.add('visible');
+}
+function showArrow(id, col) {
+  const el = document.getElementById(id);
+  el.classList.add('visible', 'colored');
+  el.style.setProperty('--col', col);
+}
+function showMetric(id) {
+  document.getElementById(id).classList.add('visible');
+}
+function activate(id) {
+  document.getElementById(id).classList.add('active');
+}
+function deactivate(id) {
+  document.getElementById(id).classList.remove('active');
+}
+function progress(pct) {
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('step-counter').textContent =
+    'Étape ' + current + ' / ' + (STEPS.length - 1);
+}
+
+function nextStep() {
+  if (current < STEPS.length - 1) {
+    current++;
+    STEPS[current]();
+    document.getElementById('step-counter').textContent =
+      'Étape ' + current + ' / ' + (STEPS.length - 1);
+  }
+}
+
+function prevStep() {
+  if (current > 0) {
+    resetAnim();
+    const target = current > 1 ? current - 1 : 0;
+    for (let i = 0; i <= target; i++) {
+      current = i;
+      STEPS[i]();
+    }
+  }
+}
+
+function autoPlay() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; return; }
+  autoTimer = setInterval(() => {
+    if (current < STEPS.length - 1) { nextStep(); }
+    else { clearInterval(autoTimer); autoTimer = null; }
+  }, 1400);
+}
+
+function resetAnim() {
+  current = 0;
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  document.querySelectorAll('.block').forEach(el => {
+    el.classList.remove('visible', 'active');
+  });
+  document.querySelectorAll('.arrow').forEach(el => {
+    el.classList.remove('visible', 'colored');
+    el.style.removeProperty('--col');
+  });
+  document.querySelectorAll('.metric').forEach(el => {
+    el.classList.remove('visible');
+  });
+  document.getElementById('loop-feedback').classList.remove('visible');
+  document.getElementById('progress-bar').style.width = '0%';
+  document.getElementById('step-counter').textContent = 'Étape 0 / 8';
+}
+</script>
+</body>
+</html>
