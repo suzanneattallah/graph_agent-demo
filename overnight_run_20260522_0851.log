@@ -1,0 +1,10 @@
+[08:51:37] Configuration anti-veille...
+[08:51:38]   keepawake.py lancé (PID 18940)
+[08:51:38] Pipeline overnight demarre  log : C:\Projet\overnight_run_20260522_0851.log
+[08:51:38] Ordi : laisser allume, ecran peut etre ferme
+[08:51:38] SKIP : Traces
+[08:51:38] SKIP : Juges iter1
+[08:51:38] SKIP : GEPA Juges
+[08:51:38] SKIP : Juges iter2
+[08:51:38] SKIP : Charts
+[08:51:38] === GIT PUSH ===

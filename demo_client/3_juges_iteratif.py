@@ -92,7 +92,7 @@ def update_judge_in_ui(judge_name: str, new_instructions: str) -> bool:
     try:
         from mlflow.genai.judges import make_judge
         existing = get_judge_from_ui(judge_name)
-        model = (existing or {}).get("model") or "openai:/gpt-4o-mini"
+        model = (existing or {}).get("model") or f"openai:/{JUDGE_MODEL}"
         new_judge = make_judge(name=judge_name, instructions=new_instructions, model=model)
         new_judge.register(experiment_id=exp_id)
         print(f"  [UI] Juge '{judge_name}' mis à jour ✓")
@@ -145,24 +145,48 @@ def _llm_call(
 def _normalize(text: str) -> str:
     import unicodedata
 
-    return unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode().upper()
+    normalized = unicodedata.normalize("NFD", text or "")
+    return normalized.encode("ascii", "ignore").decode().upper()
 
 
 def extract_verdict(text: str) -> str:
     normalized = _normalize(text)
-    if re.search(r"VERDICT\s*:?\s*[\*#]*\s*SATISFAISANT", normalized):
-        return "SATISFAISANT"
-    if re.search(r"VERDICT\s*:?\s*[\*#]*\s*(A AMELIORER|INSUFFISANT|NON SATISFAISANT)", normalized):
-        match = re.search(r"VERDICT\s*:?\s*[\*#]*\s*(A AMELIORER|INSUFFISANT|NON SATISFAISANT)", normalized)
-        label = match.group(1) if match else ""
-        return "INSUFFISANT" if "INSUFFISANT" in label else "À AMÉLIORER"
-    if re.search(r"(DECISION|EVALUATION|RESULTAT)\s*:?\s*[\*#]*\s*SATISFAISANT", normalized):
-        return "SATISFAISANT"
-    if "SATISFAISANT" in normalized:
-        return "SATISFAISANT"
-    if "A AMELIORER" in normalized or "INSUFFISANT" in normalized:
-        return "INSUFFISANT" if "INSUFFISANT" in normalized else "À AMÉLIORER"
+    verdict_patterns = [
+        (
+            "INSUFFISANT",
+            [
+                r"VERDICT\s*:?\s*[\*#\-\s]*INSUFFISANT",
+                r"VERDICT\s*:?\s*[\*#\-\s]*NON SATISFAISANT",
+                r"\bNON SATISFAISANT\b",
+                r"\bINSUFFISANT\b",
+            ],
+        ),
+        (
+            "À AMÉLIORER",
+            [
+                r"VERDICT\s*:?\s*[\*#\-\s]*A AMELIORER",
+                r"\bA AMELIORER\b",
+                r"\bAMELIORER\b",
+            ],
+        ),
+        (
+            "SATISFAISANT",
+            [
+                r"VERDICT\s*:?\s*[\*#\-\s]*SATISFAISANT",
+                r"(DECISION|EVALUATION|RESULTAT)\s*:?\s*[\*#\-\s]*SATISFAISANT",
+                r"\bSATISFAISANT\b",
+            ],
+        ),
+    ]
+
+    for label, patterns in verdict_patterns:
+        if any(re.search(pattern, normalized) for pattern in patterns):
+            return label
     return "INCONNU"
+
+
+def _is_valid_verdict(label: str) -> bool:
+    return label in SCORE_BY_VERDICT
 
 
 def extract_score(text: str) -> float:
@@ -234,18 +258,24 @@ def fetch_agent_traces(limit: int = 7) -> list[dict[str, object]]:
             f"Experiment '{AGENT_EXPERIMENT}' introuvable. Lance d'abord : python -m demo_client.2_generer_traces"
         )
 
+    search_size = max(limit * 5, limit)
     runs = mlflow.search_runs(
         experiment_ids=[experiment.experiment_id],
-        max_results=limit,
+        max_results=search_size,
         order_by=["start_time DESC"],
     )
 
     mlf_client = mlflow.MlflowClient()
     traces: list[dict[str, object]] = []
+    seen_run_ids: set[str] = set()
     for _, run in runs.iterrows():
         run_id = run["run_id"]
+        if run_id in seen_run_ids:
+            continue
+        seen_run_ids.add(run_id)
+
         run_name = run.get("tags.mlflow.runName", run_id[:8])
-        question = run.get("params.question", "").strip()
+        question = str(run.get("params.question", "")).strip()
         answer = _read_artifact(mlf_client, run_id, "answer.txt").strip()
         visited_nodes = _read_artifact(mlf_client, run_id, "visited_nodes.txt").strip()
         notes = _read_artifact(mlf_client, run_id, "notes.txt").strip()
@@ -269,8 +299,10 @@ def fetch_agent_traces(limit: int = 7) -> list[dict[str, object]]:
                 "elapsed": _safe_metric(run, "elapsed_seconds"),
             }
         )
+        if len(traces) >= limit:
+            break
 
-    print(f"  {len(traces)} trace(s) valide(s) récupérée(s)")
+    print(f"  {len(traces)} trace(s) valide(s) récupérée(s) sur {len(runs)} run(s) inspecté(s)")
     return traces
 
 
@@ -288,6 +320,47 @@ def build_trace_info(trace: dict[str, object]) -> str:
             f"Durée : {float(trace['elapsed']):.1f}s",
         ]
     )
+
+
+def _history_sort_key(path: Path) -> int:
+    match = re.search(r"history_iteration_(\d+)\.json$", path.name)
+    return int(match.group(1)) if match else -1
+
+
+def _list_history_files() -> list[Path]:
+    return sorted(ARTIFACTS_DIR.glob("history_iteration_*.json"), key=_history_sort_key)
+
+
+def load_existing_history() -> list[dict[str, object]]:
+    files = _list_history_files()
+    if not files:
+        return []
+    latest = files[-1]
+    try:
+        history = json.loads(latest.read_text(encoding="utf-8"))
+        print(f"  Historique existant détecté : {latest.name} ({len(history)} entrée(s))")
+        return history
+    except Exception as exc:
+        print(f"  [warn] Impossible de relire {latest.name} : {exc}")
+        return []
+
+
+def next_history_iteration() -> int:
+    files = _list_history_files()
+    if not files:
+        return 1
+    return _history_sort_key(files[-1]) + 1
+
+
+def collect_human_feedback(auto_ok: bool) -> str:
+    if auto_ok or not sys.stdin.isatty():
+        print("  [auto-ok] Feedback automatique : ok")
+        return "ok"
+    try:
+        return input("\nTon feedback sur ce verdict (texte libre, ou 'ok' si d'accord) : ").strip()
+    except EOFError:
+        print("  [auto-ok] stdin indisponible : ok")
+        return "ok"
 
 
 def load_judge_prompts() -> dict[str, str]:
@@ -413,34 +486,43 @@ def _log_score_metrics(full_history: list[dict[str, object]], iteration: int) ->
     """Log les scores numériques par juge + métriques d'exploration dans MLflow."""
     judge_scores: dict[str, float] = {}
     all_scores: list[float] = []
+    n_visited_values: list[int] = []
+    n_layers_values: list[int] = []
 
     for judge_name in JUDGES:
-        scores = [
-            record["judges"][judge_name]["score"]
-            for record in full_history
-            if judge_name in record["judges"]
-        ]
+        scores: list[float] = []
+        for record in full_history:
+            judge_data = record.get("judges", {}).get(judge_name)
+            if not judge_data:
+                continue
+            verdict_label = judge_data.get("verdict_label") or extract_verdict(str(judge_data.get("verdict", "")))
+            if not _is_valid_verdict(str(verdict_label)):
+                continue
+            scores.append(float(judge_data.get("score", SCORE_BY_VERDICT[str(verdict_label)])))
+
         avg_score = sum(scores) / len(scores) if scores else 0.0
-        sat_pct   = sum(1 for s in scores if s == 1.0) / len(scores) if scores else 0.0
+        sat_pct = sum(1 for s in scores if s == 1.0) / len(scores) if scores else 0.0
         judge_scores[judge_name] = avg_score
-        mlflow.log_metric(f"score_{judge_name}",        avg_score, step=iteration)
-        mlflow.log_metric(f"satisfaisant_{judge_name}", sat_pct,   step=iteration)
+        mlflow.log_metric(f"score_{judge_name}", avg_score, step=iteration)
+        mlflow.log_metric(f"satisfaisant_{judge_name}", sat_pct, step=iteration)
         all_scores.extend(scores)
 
     global_score = sum(all_scores) / len(all_scores) if all_scores else 0.0
     mlflow.log_metric("score_global", global_score, step=iteration)
 
-    # Métriques d'exploration extraites par JugeExploration (n_visited, n_layers)
     for record in full_history:
-        if "JugeExploration" in record["judges"]:
-            raw = record["judges"]["JugeExploration"]["verdict"]
-            nv = extract_numeric_metric(raw, "N_VISITED")
-            nl = extract_numeric_metric(raw, "N_LAYERS")
-            if nv is not None:
-                mlflow.log_metric("n_visited_avg", nv, step=iteration)
-            if nl is not None:
-                mlflow.log_metric("n_layers_avg",  nl, step=iteration)
-            break
+        raw = str(record.get("judges", {}).get("JugeExploration", {}).get("verdict", ""))
+        nv = extract_numeric_metric(raw, "N_VISITED")
+        nl = extract_numeric_metric(raw, "N_LAYERS")
+        if nv is not None:
+            n_visited_values.append(nv)
+        if nl is not None:
+            n_layers_values.append(nl)
+
+    if n_visited_values:
+        mlflow.log_metric("n_visited_avg", sum(n_visited_values) / len(n_visited_values), step=iteration)
+    if n_layers_values:
+        mlflow.log_metric("n_layers_avg", sum(n_layers_values) / len(n_layers_values), step=iteration)
 
     return judge_scores, global_score
 
@@ -450,6 +532,7 @@ def run_iteration(
     current_prompts: dict[str, str],
     iteration: int,
     cache: dict[str, str],
+    previous_history: list[dict[str, object]] | None = None,
     auto_ok: bool = False,
 ) -> tuple[int, list[dict[str, object]]]:
     print(f"\n{'=' * 70}")
@@ -457,7 +540,8 @@ def run_iteration(
     print(f"{'=' * 70}")
 
     judge_disagreements: dict[str, list[dict[str, str]]] = {judge_name: [] for judge_name in JUDGES}
-    full_history: list[dict[str, object]] = []
+    iteration_history: list[dict[str, object]] = []
+    full_history: list[dict[str, object]] = list(previous_history or [])
 
     for idx, trace in enumerate(traces, start=1):
         print(f"\n--- Trace {idx}/{len(traces)} : {str(trace['run_name'])[:50]} ---")
@@ -467,9 +551,18 @@ def run_iteration(
 
         trace_info = build_trace_info(trace)
         trace_record: dict[str, object] = {
+            "evaluation_iteration": iteration,
             "run_id": trace["run_id"],
+            "run_name": trace["run_name"],
             "question": trace["question"],
             "answer": trace["answer"],
+            "visited_nodes": trace["visited_nodes"],
+            "notes": trace["notes"],
+            "nav_path": trace["nav_path"],
+            "n_visited": trace["n_visited"],
+            "n_notes": trace["n_notes"],
+            "elapsed": trace["elapsed"],
+            "trace_info": trace_info,
             "judges": {},
         }
 
@@ -478,14 +571,13 @@ def run_iteration(
             verdict = run_judge(current_prompts[judge_name], str(trace["question"]), str(trace["answer"]), trace_info)
             print(verdict)
 
-            human_feedback = "ok" if auto_ok else input("\nTon feedback sur ce verdict (texte libre, ou 'ok' si d'accord) : ").strip()
-            if auto_ok:
-                print("  [auto-ok] Feedback automatique : ok")
+            human_feedback = collect_human_feedback(auto_ok)
             trace_record["judges"][judge_name] = {
                 "verdict": verdict,
                 "verdict_label": extract_verdict(verdict),
                 "score": extract_score(verdict),
                 "human_feedback": human_feedback,
+                "recommendation": extract_recommendation(verdict),
             }
 
             if human_feedback.lower() not in ("ok", "", "ras", "accord"):
@@ -498,6 +590,7 @@ def run_iteration(
                     }
                 )
 
+        iteration_history.append(trace_record)
         full_history.append(trace_record)
 
     history_file = ARTIFACTS_DIR / f"history_iteration_{iteration}.json"
@@ -505,7 +598,7 @@ def run_iteration(
     print(f"\n  Historique sauvegardé : {history_file}")
 
     md_lines = [f"# Itération {iteration} — Verdicts demo_client\n"]
-    for record in full_history:
+    for record in iteration_history:
         md_lines.append(f"## Run {str(record['run_id'])[:8]}\n")
         md_lines.append(f"**Question :** {record['question']}\n")
         for judge_name, judge_data in record["judges"].items():
@@ -548,17 +641,23 @@ def run_iteration(
             CACHE_FILE.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
             n_refined += 1
 
-        # Met à jour le juge dans MLflow UI (section Judges) avec le prompt raffiné
         update_judge_in_ui(judge_name, new_prompt)
 
     total_disagreements = sum(len(disagreements) for disagreements in judge_disagreements.values())
-    verdicts_all = [extract_verdict(record["judges"][judge_name]["verdict"]) for record in full_history for judge_name in JUDGES]
+    verdicts_all = [
+        extract_verdict(record["judges"][judge_name]["verdict"])
+        for record in iteration_history
+        for judge_name in JUDGES
+        if judge_name in record["judges"]
+    ]
+    verdicts_all = [label for label in verdicts_all if _is_valid_verdict(label)]
     satisfaisant_pct = verdicts_all.count("SATISFAISANT") / len(verdicts_all) if verdicts_all else 0.0
-    judge_scores, global_score = _log_score_metrics(full_history, iteration)
+    judge_scores, global_score = _log_score_metrics(iteration_history, iteration)
 
     mlflow.log_metric("total_disagreements", total_disagreements, step=iteration)
     mlflow.log_metric("judges_refined", n_refined, step=iteration)
     mlflow.log_metric("satisfaisant_pct", satisfaisant_pct, step=iteration)
+    mlflow.log_metric("history_size", len(full_history), step=iteration)
     for judge_name, disagreements in judge_disagreements.items():
         mlflow.log_metric(f"{judge_name}_disagreements", len(disagreements), step=iteration)
 
@@ -582,9 +681,14 @@ def main(limit: int = 5, iterations: int = 3, auto_ok: bool = False) -> None:
     print("Chargement des prompts de juges...")
     current_prompts = load_judge_prompts()
     cache = json.loads(CACHE_FILE.read_text(encoding="utf-8")) if CACHE_FILE.exists() else {}
+    full_history = load_existing_history()
+    first_iteration = next_history_iteration()
+    if full_history:
+        print(f"  Reprise de l'historique : prochaine itération = {first_iteration}")
 
     mlflow.set_experiment(JUDGE_EXPERIMENT)
-    for iteration in range(1, iterations + 1):
+    for offset in range(iterations):
+        iteration = first_iteration + offset
         with mlflow.start_run(run_name=f"iteration_{iteration}"):
             mlflow.log_params(
                 {
@@ -592,9 +696,17 @@ def main(limit: int = 5, iterations: int = 3, auto_ok: bool = False) -> None:
                     "n_traces": len(traces),
                     "judge_model": JUDGE_MODEL,
                     "judge_api_base": REMOTE_API_BASE,
+                    "history_size_before": len(full_history),
                 }
             )
-            n_refined, _ = run_iteration(traces, current_prompts, iteration, cache, auto_ok=auto_ok)
+            n_refined, full_history = run_iteration(
+                traces,
+                current_prompts,
+                iteration,
+                cache,
+                previous_history=full_history,
+                auto_ok=auto_ok,
+            )
 
         if n_refined == 0:
             print(f"\n✅ Convergence atteinte à l'itération {iteration} — aucun juge raffiné.")

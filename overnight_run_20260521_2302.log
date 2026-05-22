@@ -7577,3 +7577,10 @@
 [06:58:42]   =ƒº¬ View experiment at: http://localhost:5000/#/experiments/7
 [06:58:42] === FIN : Charts MLflow ï¿½ convergence (0.1 min) ===
 [06:58:42] === GIT PUSH ===
+[06:58:47] Git push termine
+[06:58:47] 
+[06:58:47] ============================================
+[06:58:47]   PIPELINE TERMINE en 476.2 minutes
+[06:58:47]   Log : C:\Projet\overnight_run_20260521_2302.log
+[06:58:47]   MLflow : http://localhost:5000
+[06:58:47] ============================================

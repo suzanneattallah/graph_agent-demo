@@ -72,6 +72,7 @@ REFLECTION_MODEL = f"openai:/{JUDGE_MODEL}"
 
 VERDICTS = ["SATISFAISANT", "À AMÉLIORER", "INSUFFISANT"]
 EXPERIMENT_NAME = "demo-client-juges-gepa"
+MIN_DATASET_EXAMPLES = 5
 
 mlflow.set_tracking_uri(MLFLOW_URL)
 
@@ -193,45 +194,57 @@ def _llm_call(
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _normalize(text: str) -> str:
     import unicodedata
-    return unicodedata.normalize("NFD", text).encode("ascii", "ignore").decode().upper()
+
+    normalized = unicodedata.normalize("NFD", text or "")
+    return normalized.encode("ascii", "ignore").decode().upper()
 
 
 def extract_verdict(text: str) -> str:
-    n = _normalize(text)
-    if re.search(r"VERDICT\s*:?\s*[\*#]*\s*SATISFAISANT", n):
-        return "SATISFAISANT"
-    if re.search(r"VERDICT\s*:?\s*[\*#]*\s*(A AMELIORER|INSUFFISANT)", n):
-        m = re.search(r"VERDICT\s*:?\s*[\*#]*\s*(A AMELIORER|INSUFFISANT)", n)
-        return "INSUFFISANT" if "INSUFFISANT" in (m.group(1) if m else "") else "À AMÉLIORER"
-    if "SATISFAISANT" in n:
-        return "SATISFAISANT"
-    if "A AMELIORER" in n or "INSUFFISANT" in n:
-        return "INSUFFISANT" if "INSUFFISANT" in n else "À AMÉLIORER"
+    normalized = _normalize(text)
+    verdict_patterns = [
+        (
+            "INSUFFISANT",
+            [
+                r"VERDICT\s*:?\s*[\*#\-\s]*INSUFFISANT",
+                r"VERDICT\s*:?\s*[\*#\-\s]*NON SATISFAISANT",
+                r"\bNON SATISFAISANT\b",
+                r"\bINSUFFISANT\b",
+            ],
+        ),
+        (
+            "À AMÉLIORER",
+            [
+                r"VERDICT\s*:?\s*[\*#\-\s]*A AMELIORER",
+                r"\bA AMELIORER\b",
+                r"\bAMELIORER\b",
+            ],
+        ),
+        (
+            "SATISFAISANT",
+            [
+                r"VERDICT\s*:?\s*[\*#\-\s]*SATISFAISANT",
+                r"\bSATISFAISANT\b",
+            ],
+        ),
+    ]
+
+    for label, patterns in verdict_patterns:
+        if any(re.search(pattern, normalized) for pattern in patterns):
+            return label
     return "INCONNU"
 
 
 def derive_expected_verdict(judge_verdict: str, human_feedback: str) -> str:
-    """Déduit le verdict attendu depuis le verdict du juge + feedback humain.
-
-    - feedback vide / 'ok' → l'humain est d'accord avec le juge
-    - feedback mentionne 'satisfaisant' → SATISFAISANT
-    - feedback mentionne 'insuffisant' / 'insatisfaisant' → INSUFFISANT
-    - feedback mentionne 'ameliorer' → À AMÉLIORER
-    - sinon (feedback critique sans verdict explicite) → À AMÉLIORER
-    """
-    fb = human_feedback.lower().strip()
-
-    if fb in ("", "ok", "ras", "accord", "ok.", "ras.", "oui"):
+    """Déduit le verdict attendu depuis le verdict du juge + feedback humain."""
+    feedback = _normalize(human_feedback).strip()
+    if feedback in ("", "OK", "RAS", "ACCORD", "OK.", "RAS.", "OUI"):
         return extract_verdict(judge_verdict)
-
-    if "insatisfaisant" in fb or "insuffisant" in fb:
+    if "NON SATISFAISANT" in feedback or "INSATISFAISANT" in feedback or "INSUFFISANT" in feedback:
         return "INSUFFISANT"
-    if "ameliorer" in fb or "améliorer" in fb:
+    if "A AMELIORER" in feedback or "AMELIORER" in feedback:
         return "À AMÉLIORER"
-    if "satisfaisant" in fb:
+    if "SATISFAISANT" in feedback:
         return "SATISFAISANT"
-
-    # Feedback critique sans verdict explicite → À AMÉLIORER
     return "À AMÉLIORER"
 
 
@@ -239,6 +252,70 @@ def derive_expected_verdict(judge_verdict: str, human_feedback: str) -> str:
 def _history_sort_key(path: Path) -> int:
     m = re.search(r"history_iteration_(\d+)\.json$", path.name)
     return int(m.group(1)) if m else -1
+
+
+def _safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        value = float(value)
+        if value != value:
+            return default
+        return value
+    except Exception:
+        return default
+
+
+def _read_artifact(mlf_client: MlflowClient, run_id: str, artifact_name: str) -> str:
+    try:
+        artifact_path = mlf_client.download_artifacts(run_id, artifact_name)
+        return Path(artifact_path).read_text(encoding="utf-8")
+    except Exception:
+        return ""
+
+
+def _build_trace_info(trace: dict) -> str:
+    if trace.get("trace_info"):
+        return str(trace["trace_info"])
+
+    n_visited = int(_safe_float(trace.get("n_visited", 0)))
+    n_notes = int(_safe_float(trace.get("n_notes", 0)))
+    elapsed = _safe_float(trace.get("elapsed", 0.0))
+    return "\n".join(
+        [
+            f"Noeuds visités ({n_visited}) :",
+            str(trace.get("visited_nodes") or "(aucun noeud visité)"),
+            "",
+            f"Chemin de navigation : {trace.get('nav_path') or '--'}",
+            "",
+            f"Notes de l'agent ({n_notes}) :",
+            str(trace.get("notes") or "(aucune note enregistrée)"),
+            "",
+            f"Durée : {elapsed:.1f}s",
+        ]
+    )
+
+
+def _hydrate_trace_record(trace: dict, mlf_client: MlflowClient) -> dict:
+    hydrated = dict(trace)
+    run_id = str(hydrated.get("run_id", "") or "")
+    if run_id:
+        try:
+            run = mlf_client.get_run(run_id)
+            metrics = run.data.metrics
+            hydrated.setdefault("n_visited", metrics.get("n_visited_nodes", 0.0))
+            hydrated.setdefault("n_notes", metrics.get("n_notes", 0.0))
+            hydrated.setdefault("elapsed", metrics.get("elapsed_seconds", 0.0))
+        except Exception:
+            pass
+
+        if not hydrated.get("visited_nodes"):
+            hydrated["visited_nodes"] = _read_artifact(mlf_client, run_id, "visited_nodes.txt").strip()
+        if not hydrated.get("notes"):
+            hydrated["notes"] = _read_artifact(mlf_client, run_id, "notes.txt").strip()
+        if not hydrated.get("nav_path"):
+            hydrated["nav_path"] = _read_artifact(mlf_client, run_id, "navigation_path.txt").strip()
+
+    hydrated["trace_info"] = _build_trace_info(hydrated)
+    return hydrated
 
 
 def load_history() -> list[dict]:
@@ -256,27 +333,43 @@ def load_history() -> list[dict]:
 
 def build_dataset(history: list[dict], judge_name: str) -> list[dict]:
     """Construit le dataset {inputs, expectations} pour un juge donné."""
-    dataset = []
+    dataset_by_run: dict[str, dict] = {}
+    mlf_client = MlflowClient()
+
     for trace in history:
         judges = trace.get("judges", {})
         if judge_name not in judges:
             continue
-        jd = judges[judge_name]
+        judge_data = judges[judge_name]
         expected = derive_expected_verdict(
-            jd.get("verdict", ""),
-            jd.get("human_feedback", ""),
+            str(judge_data.get("verdict", "")),
+            str(judge_data.get("human_feedback", "")),
         )
-        dataset.append({
+        if expected not in VERDICTS:
+            continue
+
+        hydrated = _hydrate_trace_record(trace, mlf_client)
+        question = str(hydrated.get("question", "")).strip()
+        answer = str(hydrated.get("answer", "")).strip()
+        trace_info = str(hydrated.get("trace_info", "")).strip()
+        if not question or not answer or not trace_info:
+            continue
+
+        run_key = str(hydrated.get("run_id") or f"{question[:120]}::{judge_name}")
+        dataset_by_run[run_key] = {
             "inputs": {
-                "question": trace.get("question", ""),
-                "answer": trace.get("answer", ""),
-                "trace_info": f"Run ID: {trace.get('run_id', 'N/A')}",
+                "question": question,
+                "answer": answer,
+                "trace_info": trace_info,
             },
             "expectations": {
                 "verdict": expected,
-                "human_feedback": jd.get("human_feedback", ""),
+                "human_feedback": str(judge_data.get("human_feedback", "")),
             },
-        })
+        }
+
+    dataset = list(dataset_by_run.values())
+    print(f"  [dataset] {judge_name}: {len(dataset)} exemple(s) utilisable(s)")
     return dataset
 
 
@@ -377,7 +470,7 @@ def _update_judge_ui(judge_name: str, new_instructions: str) -> bool:
             return False
 
         # Récupère le modèle existant du juge
-        model = "openai:/gpt-4o-mini"
+        model = f"openai:/{JUDGE_MODEL}"
         try:
             for s in list_scorers(experiment_id=exp_id):
                 if getattr(s, "name", None) == judge_name:
@@ -548,10 +641,19 @@ if __name__ == "__main__":
         results = {}
         for judge_name in JUDGES:
             dataset = build_dataset(history, judge_name)
-            if len(dataset) < 2:
-                print(f"\n[SKIP] {judge_name} : seulement {len(dataset)} exemple(s) (minimum 2)")
+            verdict_counts = {label: sum(1 for item in dataset if item["expectations"]["verdict"] == label) for label in VERDICTS}
+            mlflow.log_metric(f"{judge_name}_dataset_size", len(dataset))
+            for label, count in verdict_counts.items():
+                mlflow.log_metric(f"{judge_name}_{_normalize(label).lower().replace(' ', '_')}", count)
+
+            if len(dataset) < MIN_DATASET_EXAMPLES:
+                print(
+                    f"\n[SKIP] {judge_name} : seulement {len(dataset)} exemple(s) utilisable(s) "
+                    f"(minimum {MIN_DATASET_EXAMPLES})"
+                )
                 results[judge_name] = None
                 continue
+
             new_uri = optimize_judge(judge_name, dataset)
             results[judge_name] = new_uri
             if new_uri:
